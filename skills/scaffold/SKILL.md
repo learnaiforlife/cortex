@@ -48,7 +48,7 @@ Verify REPO_DIR exists and is a directory. If not, tell the user and stop.
 
 ### Step 2: Heuristic Pre-scan
 
-Run the TypeScript CLI analyzer for a structured ProjectProfile. This is optional -- if it fails, subagents will do manual analysis.
+Run the heuristic pre-scanner for a structured ProjectProfile. This is optional -- if it fails, subagents will do manual analysis.
 
 ```bash
 bash "${CLAUDE_SKILL_DIR}/scripts/analyze.sh" "$REPO_DIR" 2>/dev/null || echo "{}"
@@ -338,7 +338,7 @@ These apply across all modes:
 
 2. **Project-specific only**: Every generated file must contain real values from the analyzed project. No generic templates, no placeholder text, no invented commands.
 
-3. **Graceful degradation**: If the TypeScript CLI is not available, subagents handle everything manually. If a reference file is missing, work with what you have.
+3. **Graceful degradation**: If the heuristic pre-scanner fails, subagents handle everything manually. If a reference file is missing, work with what you have.
 
 4. **Never overwrite**: Always read existing files before writing. Merge, enhance, and preserve user customizations.
 

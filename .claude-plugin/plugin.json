@@ -3,7 +3,7 @@
   "description": "The intelligence layer for AI-powered development. Analyzes any repo and generates complete scaffolding (CLAUDE.md, agents, skills, rules, MCP, hooks) for Claude Code, Cursor, and Codex. Three modes: scaffold (generate), audit (review existing), optimize (improve with evals).",
   "version": "1.0.0",
   "author": {
-    "name": "Cortex"
+    "name": "learnaiforlife"
   },
   "keywords": ["scaffold", "setup", "agents", "skills", "rules", "mcp", "cursor", "codex", "cortex"],
   "license": "MIT"

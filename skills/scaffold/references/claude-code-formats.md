@@ -356,7 +356,7 @@ paths:
 
 **`matcher` field**: A regex pattern to match against the tool name (for PreToolUse/PostToolUse) or other event-specific data. Use `".*"` to match everything.
 
-**`type` field**: Currently only `"command"` is supported.
+**`type` field**: Supported types: `"command"` (run shell command), `"prompt"` (single-turn LLM decision), `"agent"` (multi-turn subagent), `"http"` (POST to endpoint).
 
 **`command` field**: Shell command to execute. Environment variables available:
 - `$FILE_PATH` - Path of the file being operated on

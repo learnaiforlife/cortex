@@ -2,12 +2,11 @@
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "startup",
+        "matcher": ".*",
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "Check if the current directory has a CLAUDE.md file. If it does NOT have one, and it does have a package.json, pyproject.toml, go.mod, Cargo.toml, or pom.xml (indicating it's a real project), output EXACTLY this message and nothing else: 'Tip: This project has no AI dev setup. Run /scaffold to generate CLAUDE.md, agents, skills, rules, and MCP configs tailored to this codebase.' If CLAUDE.md already exists, output nothing.",
-            "model": "haiku"
+            "type": "command",
+            "command": "if [ ! -f CLAUDE.md ] && ([ -f package.json ] || [ -f pyproject.toml ] || [ -f go.mod ] || [ -f Cargo.toml ] || [ -f pom.xml ]); then echo 'Tip: This project has no AI dev setup. Run /scaffold to generate CLAUDE.md, agents, skills, rules, and MCP configs tailored to this codebase.' >&2; fi; exit 0"
           }
         ]
       }

@@ -55,7 +55,7 @@ Run evals on existing skills. A/B test improvements. Auto-fix.
 ## Install
 
 ```bash
-git clone https://github.com/latheshsunder/cortex
+git clone https://github.com/learnaiforlife/cortex
 cd cortex
 ./install.sh
 ```
