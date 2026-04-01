@@ -1,7 +1,11 @@
 ---
-description: "Optimize existing skills using evals and freshness checks. Usage: /scaffold-optimize [path]"
+description: "Optimize existing skills using evals, freshness checks, or auto-improvement. Usage: /scaffold-optimize [path|auto-improve]"
 ---
 
-Invoke the scaffold skill with: optimize $ARGUMENTS
+If `$ARGUMENTS` is **"auto-improve"**, invoke the scaffold skill with: optimize auto-improve
 
-This will inventory your existing skills, check if they have evals, verify CLAUDE.md freshness against the actual codebase, and audit MCP server configurations. Produces an optimization report with specific actions to improve your AI dev setup.
+Otherwise, invoke the scaffold skill with: optimize $ARGUMENTS
+
+**optimize** mode inventories your existing skills, checks evals, verifies CLAUDE.md freshness, and audits MCP configs. Produces an optimization report with actions.
+
+**optimize auto-improve** mode applies the autoresearch pattern: it measures scaffold quality across test fixtures, dispatches the skill-improver agent to edit SKILL.md, re-measures, and keeps only improvements. This is autonomous skill prompt engineering.

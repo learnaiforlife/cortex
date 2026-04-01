@@ -128,6 +128,16 @@ Flag these known failure modes:
 
 **Files reviewed**: [number]
 **Verdict**: PASS | FAIL
+**Quality Score**: [0-100]
+
+### Dimension Scores
+
+| Dimension | Score | Max | Details |
+|-----------|-------|-----|---------|
+| Format Compliance | [0-25] | 25 | [brief note] |
+| Specificity | [0-25] | 25 | [brief note] |
+| Completeness | [0-25] | 25 | [brief note] |
+| Structural Quality | [0-25] | 25 | [brief note] |
 
 ### Per-File Results
 
@@ -146,9 +156,36 @@ Flag these known failure modes:
 - Passed: [N]
 - Failed: [N]
 - Issues found: [N]
+- **Weakest dimension**: [name] ([score]/25)
 
 [If any file FAILed, the overall verdict is FAIL.]
 ```
+
+### Scoring Guide
+
+Score each dimension out of 25 points:
+
+**Format Compliance (25 pts):**
+- YAML frontmatter valid on all agent/skill/rule files (5 pts per category: agents, skills, cursor rules, JSON files, CLAUDE.md structure)
+
+**Specificity (25 pts):**
+- No placeholder text in CLAUDE.md (7 pts)
+- Real commands in code blocks (6 pts)
+- Skills reference actual project commands (6 pts)
+- AGENTS.md free of Claude-Code-specific references (6 pts)
+
+**Completeness (25 pts):**
+- CLAUDE.md exists and is substantive (5 pts)
+- Claude Code rules/agents exist (5 pts)
+- Cursor .mdc rules exist (5 pts)
+- AGENTS.md exists and is substantive (5 pts)
+- CLAUDE.md has 3+ sections (5 pts)
+
+**Structural Quality (25 pts):**
+- Agent files have body content after frontmatter (7 pts)
+- Skill files have workflow steps (6 pts)
+- No overly short files (<50 bytes) (6 pts)
+- Total file count is reasonable (3-30) (6 pts)
 
 ## Rules
 

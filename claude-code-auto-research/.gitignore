@@ -1,0 +1,11 @@
+# Experiment results (regenerated each run)
+results.tsv
+
+# Snapshots (except best versions)
+snapshots/baseline/
+snapshots/*.tmp
+
+# Python
+__pycache__/
+*.pyc
+.venv/

@@ -52,6 +52,9 @@ Scan existing setup for duplicates, stale skills, broken configs.
 ### `/scaffold optimize` -- Optimize
 Run evals on existing skills. A/B test improvements. Auto-fix.
 
+### `/scaffold-optimize auto-improve` -- Self-Improving Skills
+Autoresearch-style loop: measure scaffold quality, edit SKILL.md, re-measure, keep only improvements.
+
 ## Install
 
 ```bash
@@ -103,11 +106,15 @@ Your Repo --> [Heuristic Pre-scan] --> [2 Parallel Subagents + Main Thread] --> 
 
 ## Architecture
 
-- **5 specialized subagents** for parallel analysis
+- **7 specialized subagents** for parallel analysis and iterative improvement
 - **Reference docs** with exact file format specs for all 3 tools
 - **Official plugin catalog** -- recommends before generating custom skills
 - **MCP server catalog** -- matches services to servers
-- **Eval suite** -- verifiable quality via skill-creator
+- **Quantitative scoring** -- 0-100 quality score with 4 weighted dimensions
+- **Eval suite** -- automated assertion-based eval runner with pass rate reporting
+- **Experiment tracking** -- append-only results log for cross-run learning
+- **Iterative improvement** -- autoresearch-style generate-score-improve loop
+- **Self-improving skills** -- agent edits SKILL.md, measures impact, keeps only gains
 - **Quality gate** -- reviewer subagent validates before writing
 
 ## Key Design Decisions
@@ -117,6 +124,20 @@ Your Repo --> [Heuristic Pre-scan] --> [2 Parallel Subagents + Main Thread] --> 
 **Multi-tool output.** Every scaffold run generates files for Claude Code, Cursor, AND Codex simultaneously. No need to run separate tools.
 
 **Quality gate.** A dedicated reviewer subagent validates all generated files before they are written, checking format compliance, specificity (no generic templates), and consistency across tools.
+
+**Autoresearch-inspired iteration.** Borrowed from [Karpathy's autoresearch](https://github.com/karpathy/autoresearch): every scaffold run is scored quantitatively (0-100), logged to an experiment tracker, and optionally improved through an iterative loop that targets the weakest dimension. The self-improving mode applies the same pattern to SKILL.md itself — the agent edits its own instructions, measures the impact, and keeps only improvements.
+
+## Scripts Reference
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/score.sh <dir>` | Score scaffold output (0-100 JSON) |
+| `scripts/run-skill-evals.sh <dir> [eval-id]` | Run assertions from evals.json |
+| `scripts/log-result.sh <dir> <status> <desc>` | Append to experiment log |
+| `scripts/auto-improve.sh <skill-dir> [iters]` | Autoresearch loop for SKILL.md |
+| `scripts/validate.sh <dir>` | Basic format validation |
+| `scripts/analyze.sh <dir>` | Heuristic project profile |
+| `scripts/audit-existing.sh <dir>` | Audit existing AI setup |
 
 ## Contributing
 

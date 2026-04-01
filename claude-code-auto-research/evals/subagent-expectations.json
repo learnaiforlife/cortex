@@ -1,0 +1,98 @@
+{
+  "quality-reviewer": {
+    "nextjs-app": [
+      "Catches hallucinated MCP servers not present in docker-compose.yml",
+      "Validates YAML frontmatter syntax in all generated agent files",
+      "Does not reject valid Prisma-related content",
+      "Verifies commands referenced in skills exist in package.json scripts",
+      "Detects placeholder content like [PROJECT_NAME] or TODO:",
+      "Returns structured PASS/FAIL verdict with specific issues listed"
+    ],
+    "python-api": [
+      "Does not hallucinate npm/node commands for a Python project",
+      "Validates that recommended MCP servers match project services",
+      "Catches if generated CLAUDE.md mentions frameworks not in pyproject.toml",
+      "Verifies pytest commands are real and properly formatted"
+    ],
+    "minimal": [
+      "Catches non-existent commands referenced in generated skills",
+      "Catches placeholder/TODO content in generated files",
+      "Does not over-generate warnings for a legitimately minimal project",
+      "Does not recommend MCP servers when no services are detected",
+      "Flags if too many files were generated for a minimal project"
+    ]
+  },
+  "repo-analyzer": {
+    "nextjs-app": [
+      "Detects Next.js App Router in src/app/",
+      "Identifies Prisma as the ORM from prisma/schema.prisma",
+      "Finds docker-compose postgres service",
+      "Identifies Tailwind CSS from tailwind.config.js",
+      "Detects GitHub Actions CI workflow",
+      "Maps src/app/ as the main entry point directory"
+    ],
+    "python-api": [
+      "Detects FastAPI from pyproject.toml dependencies",
+      "Finds OpenAPI spec at openapi.yaml",
+      "Identifies pytest as test framework from tests/conftest.py",
+      "Detects Dockerfile for containerization",
+      "Maps app/main.py as the entry point"
+    ],
+    "minimal": [
+      "Correctly identifies this as a minimal/simple project",
+      "Does not hallucinate frameworks not present",
+      "Finds index.js as the entry point",
+      "Does not over-analyze a simple project structure"
+    ]
+  },
+  "skill-recommender": {
+    "nextjs-app": [
+      "Recommends superpowers as must-have plugin",
+      "Recommends context7 for Next.js and Prisma documentation",
+      "Recommends hookify plugin",
+      "Does NOT generate a custom TDD skill (superpowers covers it)",
+      "Does NOT generate a custom debugging skill (superpowers covers it)",
+      "Does NOT generate a custom code-review skill (official plugin exists)",
+      "Generates Prisma db-migrate custom skill (no official equivalent)",
+      "Recommends postgres MCP server based on docker-compose detection"
+    ],
+    "python-api": [
+      "Recommends superpowers as must-have plugin",
+      "Does NOT generate custom skills for workflows covered by official plugins",
+      "Generates validate-api skill for OpenAPI spec validation",
+      "Recommends ruff linting hook if ruff is detected in dependencies"
+    ],
+    "minimal": [
+      "Recommends superpowers as the primary plugin",
+      "Does NOT over-recommend plugins for a minimal project",
+      "Does NOT generate custom skills for non-existent workflows",
+      "Total recommendations are appropriately scoped (not bloated)"
+    ]
+  },
+  "codex-specialist": {
+    "nextjs-app": [
+      "Generates AGENTS.md at project root",
+      "Contains Development Commands section with actual npm scripts",
+      "Contains Architecture section describing Next.js structure",
+      "Contains Agent Instructions section",
+      "Does NOT contain Claude Code-specific references like .claude/ or CLAUDE.md",
+      "Does NOT contain YAML frontmatter (plain markdown only)"
+    ],
+    "python-api": [
+      "AGENTS.md mentions Python/FastAPI conventions",
+      "Development commands reference pip/poetry and pytest",
+      "Does not reference npm, node, or JavaScript tooling"
+    ]
+  },
+  "setup-auditor": {
+    "_description": "Tested via audit mode, not per-fixture scaffold",
+    "general": [
+      "Scans .claude/ directory for existing setup files",
+      "Checks that skills reference actual commands from package.json or equivalent",
+      "Identifies MCP servers configured for services not in the project",
+      "Reports findings categorized as Critical, Warning, or Info",
+      "Detects duplicate rules across .claude/rules/ and .cursor/rules/",
+      "Offers to fix issues found"
+    ]
+  }
+}

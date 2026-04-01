@@ -152,14 +152,45 @@ Read `${CLAUDE_SKILL_DIR}/references/cursor-formats.md` for exact format specs.
 - Prompt: "Here is the ProjectProfile: ```{PROJECT_PROFILE}```. Here is the repo analysis: ```{REPO_ANALYZER_OUTPUT}```. Generate a complete AGENTS.md."
 - The codex-specialist produces a self-contained document covering overview, architecture, commands, conventions, testing, agent instructions, and common tasks.
 
-### Step 6: Quality Review
+### Step 6: Quality Review and Score
 
 Before writing any files to disk, dispatch the **quality-reviewer** subagent.
 
 - Prompt: "Review these generated files for quality and format compliance. Here are the files and their intended paths: ```{ALL_GENERATED_FILES_WITH_PATHS}```"
 - The quality-reviewer checks: YAML frontmatter validity, project-specific content (no placeholders), real commands, real MCP packages, no sensitive data, correct file paths, no duplicates, structural completeness.
+- The quality-reviewer also outputs a **Quality Score** (0-100) with per-dimension breakdown.
 - **If verdict is FAIL**: Fix every reported issue before proceeding. Re-review if needed.
-- **If verdict is PASS**: Proceed to writing.
+- **If verdict is PASS**: Note the score and weakest dimension, then proceed.
+
+### Step 6B: Iterative Improvement (Autoresearch Loop)
+
+This step applies the autoresearch pattern: **score -> identify weakness -> improve -> re-score -> keep/revert**. It runs up to 2 improvement iterations to raise the quality score.
+
+**Skip this step if**: the quality score is already >= 80, OR the quality-reviewer gave a clean PASS with no warnings.
+
+**For each iteration (max 2):**
+
+1. **Identify the weakest dimension** from the quality score breakdown (format_compliance, specificity, completeness, or structural_quality).
+
+2. **Dispatch the scaffold-improver subagent**:
+   - Prompt: "Improve the scaffold output at `{REPO_DIR}`. Here is the score breakdown: ```{SCORE_JSON}```. Here is the quality review: ```{QUALITY_REVIEW}```. Here is the project profile: ```{PROJECT_PROFILE}```. Focus on improving the weakest dimension: `{WEAKEST_DIMENSION}`. Only modify files related to that dimension."
+
+3. **Re-score** after the improver finishes. Compare the new total score to the previous total score.
+
+4. **Decision rule** (same as autoresearch):
+   - If new score > previous score: **keep** the improvements.
+   - If new score <= previous score: **revert** the changes (restore previous versions).
+
+5. **Stop iterating** if:
+   - Score is >= 80 (good enough).
+   - Score did not improve (further iterations are unlikely to help).
+   - Maximum iterations (2) reached.
+
+Print a brief iteration log:
+```
+Iteration 1: score 62 -> 75 (improved specificity 12->19) [KEPT]
+Iteration 2: score 75 -> 78 (improved completeness 15->20) [KEPT]
+```
 
 ### Step 7: Write Files
 
@@ -220,6 +251,57 @@ For Cursor: Open the project in Cursor. Rules in .cursor/rules/ are loaded autom
 For Codex: AGENTS.md is read automatically by Codex agents.
 ```
 
+### Step 9: Score and Log Results
+
+After the summary, run the scaffold scorer and log the result. This creates an append-only experiment log (inspired by autoresearch's `results.tsv`) for tracking scaffold quality over time.
+
+```bash
+# Score the generated scaffold
+bash "${CLAUDE_SKILL_DIR}/scripts/score.sh" "$REPO_DIR"
+```
+
+Print the score breakdown in the summary. Then log the result with per-subagent metrics.
+
+Before logging, collect these metrics from the scaffold run:
+- `QR_VERDICT`: The quality-reviewer's verdict on the first review (before any fixes). PASS or FAIL.
+- `QR_SCORE`: The numeric quality score from the first review (before Step 6B improvement).
+- `IMPROVER_RAN`: "true" if Step 6B was executed, "false" if skipped (score >= 80 or clean PASS).
+- `IMPROVER_HELPED`: "true" if the improver raised the score, "false" if it didn't help or didn't run.
+- `SUBAGENT_TIMEOUTS`: Count of subagents that timed out during this run (0 in normal operation).
+
+```bash
+# Log the run to ~/.cortex/scaffold-results.tsv with per-subagent metrics
+bash "${CLAUDE_SKILL_DIR}/scripts/log-result.sh" "$REPO_DIR" "success" "Scaffolded [project-name]" \
+  "" "$QR_VERDICT" "$QR_SCORE" "$IMPROVER_RAN" "$IMPROVER_HELPED" "$SUBAGENT_TIMEOUTS"
+```
+
+If the scaffold had issues (quality-reviewer required fixes), use status `partial` instead of `success`. If any step crashed, use `crash`.
+
+### Automatic Improvement Suggestions (Post-Execution Analysis)
+
+After printing the quality score, if the total score is below 70, analyze the weakest dimension and print one specific, actionable suggestion:
+
+- If **format_compliance** < 15: print "Format issue detected: Check agent files for YAML frontmatter errors. Common cause: `tools` field written as comma-separated string instead of YAML list. Run `/scaffold-optimize` to fix automatically."
+- If **specificity** < 15: print "Specificity issue detected: CLAUDE.md may contain placeholder text or generic commands. Re-read the project's package.json/pyproject.toml and replace generic commands with actual ones. Run `/scaffold-optimize` to fix automatically."
+- If **completeness** < 15: print "Completeness issue detected: Missing output for one or more tools. Verify: CLAUDE.md exists? .cursor/rules/*.mdc exists? AGENTS.md exists? At least one .claude/rules/*.md? Run `/scaffold-optimize` to fix automatically."
+- If **structural_quality** < 15: print "Structural issue detected: Some files may be too short or missing body content. Agents need system prompts after frontmatter. Skills need workflow steps. Run `/scaffold-optimize` to fix automatically."
+
+If the score is >= 70 but < 80, print: "Score is acceptable but could be higher. Run `/scaffold-optimize auto-improve` for autonomous improvement."
+
+If the score is >= 80, print nothing extra (quality is good).
+
+Include the **quality score** and **weakest dimension** in the summary output:
+
+```
+### Quality Score
+- **Total**: [score]/100
+- Format compliance: [n]/25
+- Specificity: [n]/25
+- Completeness: [n]/25
+- Structural quality: [n]/25
+- Weakest dimension: [name] — consider reviewing [specific files]
+```
+
 ---
 
 ## Audit Mode
@@ -259,7 +341,10 @@ If the user says no:
 
 ## Optimize Mode
 
-When `$ARGUMENTS` is "optimize", optimize the existing setup using evals and freshness checks.
+When `$ARGUMENTS` starts with "optimize", choose the sub-mode:
+
+- If `$ARGUMENTS` is exactly **"optimize auto-improve"** --> jump to [Auto-Improve Mode](#auto-improve-mode)
+- If `$ARGUMENTS` is exactly **"optimize"** or **"optimize [path]"** --> proceed below
 
 ### Step 1: Inventory Existing Skills
 
@@ -330,6 +415,64 @@ Print a summary:
 
 ---
 
+## Auto-Improve Mode
+
+This is the autoresearch pattern applied to SKILL.md itself: the agent modifies the skill's own instructions, measures the impact on scaffold quality, and keeps only improvements.
+
+### Step 1: Collect Baseline Scores
+
+Run the scorer across all test fixtures to establish a baseline:
+
+```bash
+bash "${CLAUDE_SKILL_DIR}/scripts/auto-improve.sh" "${CLAUDE_SKILL_DIR}"
+```
+
+This scores every fixture in `test/fixtures/` and reports the average score and weakest dimension.
+
+### Step 2: Dispatch Skill-Improver Agent
+
+Launch the **skill-improver** subagent with the baseline data:
+
+- Prompt: "Read the SKILL.md at `{CLAUDE_SKILL_DIR}/SKILL.md`. The experiment log is at `~/.cortex/auto-improve-log.tsv`. The evals are at `{CLAUDE_SKILL_DIR}/evals/evals.json`. The weakest dimension across fixtures is `{WEAKEST_DIMENSION}` with avg score `{WEAKEST_SCORE}/25`. Make ONE targeted edit to SKILL.md to improve scaffold output for that dimension. Follow your editing rules strictly."
+
+### Step 3: Re-Score and Decide
+
+After the skill-improver edits SKILL.md:
+
+1. Re-run the scorer on all fixtures:
+```bash
+bash "${CLAUDE_SKILL_DIR}/scripts/auto-improve.sh" "${CLAUDE_SKILL_DIR}"
+```
+
+2. Compare the new average score to the baseline.
+
+3. **Decision rule** (from autoresearch):
+   - If new avg score > baseline: **keep** the edit. Commit with message `"auto-improve: [dimension] [before]->[after]"`.
+   - If new avg score <= baseline: **revert** the edit with `git checkout -- "${CLAUDE_SKILL_DIR}/SKILL.md"`.
+
+### Step 4: Repeat or Report
+
+If the edit was kept and the score is still < 80, go back to Step 2 for another iteration. Maximum 5 iterations per auto-improve session.
+
+After stopping, print the improvement summary:
+
+```
+## Auto-Improve Results
+
+| Iteration | Score | Change | Dimension | Status |
+|-----------|-------|--------|-----------|--------|
+| Baseline  | [n]   | --     | --        | --     |
+| 1         | [n]   | +[n]   | [dim]     | kept   |
+| 2         | [n]   | +[n]   | [dim]     | kept   |
+| 3         | [n]   | +0     | [dim]     | reverted |
+
+**Total improvement**: +[n] points ([baseline] -> [final])
+**Iterations run**: [n]
+**Results log**: ~/.cortex/auto-improve-log.tsv
+```
+
+---
+
 ## Key Principles
 
 These apply across all modes:
@@ -345,3 +488,66 @@ These apply across all modes:
 5. **Three-tool parity**: Always generate for Claude Code, Cursor, AND Codex. The user may use any or all of them.
 
 6. **Quality gate**: The quality-reviewer subagent must PASS before files are written to disk. No exceptions in scaffold mode.
+
+---
+
+## Error Recovery and Autonomy
+
+Inspired by autoresearch's `program.md`: explicit recovery patterns for every failure mode, so the skill can run unattended.
+
+### Fallback Chain
+
+Each step has a fallback. If the primary method fails, use the fallback. If the fallback also fails, log the failure and proceed with reduced output rather than stopping entirely.
+
+| Step | Primary | Fallback | If Both Fail |
+|------|---------|----------|--------------|
+| Step 1 (Acquire) | `git clone --depth 1` | `git clone` (full) | Stop and report "cannot access repo" |
+| Step 2 (Pre-scan) | `analyze.sh` | Skip (subagents do analysis) | Proceed with `{}` profile |
+| Step 3 (Subagents) | Both in parallel | Run sequentially | Main thread analysis only |
+| Step 4 (Existing) | `ls -la` check | `find` check | Assume no existing setup |
+| Step 5 (Generate) | Full 3-tool output | Generate what's possible | At minimum generate CLAUDE.md |
+| Step 6 (Review) | quality-reviewer agent | validate.sh script | Manual review warning |
+| Step 6B (Improve) | scaffold-improver agent | Skip (keep v1 output) | Proceed with unimproved output |
+| Step 7 (Write) | Write tool | Bash `cat >` fallback | Report files to stdout |
+| Step 9 (Score/Log) | score.sh + log-result.sh | Skip scoring | Proceed without logging |
+
+### Timeout Handling
+
+- **Subagent timeout**: If any subagent does not respond within 2 minutes, proceed without its output. Use whatever context the main thread gathered.
+- **Clone timeout**: If `git clone` takes longer than 60 seconds, try `--depth 1 --single-branch`. If that also times out, report and stop.
+- **Score/eval timeout**: If scoring scripts take longer than 30 seconds, skip scoring and proceed.
+
+### Crash Logging
+
+When any step crashes (unexpected error, not a graceful fallback):
+
+1. Log the crash to `~/.cortex/scaffold-results.tsv` with status `crash` and a description of which step failed.
+2. Include the error message (first 200 chars) in the description field.
+3. Proceed to the next step if possible, or stop gracefully with a clear error message.
+
+```bash
+# Example crash logging
+bash "${CLAUDE_SKILL_DIR}/scripts/log-result.sh" "$REPO_DIR" "crash" "Step 3 failed: subagent timeout after 120s"
+```
+
+### Batch Mode Autonomy
+
+When scaffolding multiple repos in sequence (e.g., from a list of URLs), follow these autonomy rules inspired by autoresearch's "NEVER STOP" clause:
+
+1. **Do not ask for confirmation** between repos. Scaffold each repo, log the result, move to the next.
+2. **Do not stop on non-fatal errors.** If one repo fails to scaffold, log it as `crash` or `fail` and continue with the next repo.
+3. **Do stop on** repeated fatal errors (3+ consecutive crashes), disk full, or permission denied on the output directory.
+4. **Print a batch summary** after all repos are processed:
+
+```
+## Batch Scaffold Summary
+
+| Repo | Score | Status | Weakest Dimension |
+|------|-------|--------|-------------------|
+| [name] | [n]/100 | success | [dim] |
+| [name] | [n]/100 | partial | [dim] |
+| [name] | --/100 | crash | Step 3: clone failed |
+
+Total: [n] repos, [n] success, [n] partial, [n] crash
+Results log: ~/.cortex/scaffold-results.tsv
+```

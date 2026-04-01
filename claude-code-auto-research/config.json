@@ -1,0 +1,20 @@
+{
+  "max_iterations": 10,
+  "max_no_improvement": 3,
+  "runs_per_iteration": 2,
+  "model": "sonnet",
+  "grading_model": "haiku",
+  "target_file": "../skills/scaffold/agents/quality-reviewer.md",
+  "fixtures": [
+    "../test/fixtures/nextjs-app",
+    "../test/fixtures/python-api",
+    "../test/fixtures/minimal"
+  ],
+  "eval_source": "../skills/scaffold/evals/evals.json",
+  "expectations_file": "evals/subagent-expectations.json",
+  "score_weights": {
+    "expectation_pass_rate": 0.5,
+    "structural_score": 0.3,
+    "no_hallucination_rate": 0.2
+  }
+}

@@ -17,6 +17,18 @@
         "Generates AGENTS.md for Codex",
         "Generates Prisma db-migrate custom skill (no official equivalent)",
         "Safety rules are generated for both Claude Code and Cursor"
+      ],
+      "assertions": [
+        { "type": "file_exists", "path": "CLAUDE.md" },
+        { "type": "file_exists", "path": "AGENTS.md" },
+        { "type": "file_exists", "path": ".cursor/rules/project-context.mdc" },
+        { "type": "file_contains", "path": "CLAUDE.md", "pattern": "[Nn]ext\\.?js|Next" },
+        { "type": "file_not_contains", "path": "CLAUDE.md", "pattern": "\\[PROJECT_NAME\\]|PLACEHOLDER|TODO:" },
+        { "type": "file_min_size", "path": "CLAUDE.md", "min_bytes": 200 },
+        { "type": "file_min_size", "path": "AGENTS.md", "min_bytes": 200 },
+        { "type": "dir_exists", "path": ".claude/rules" },
+        { "type": "dir_exists", "path": ".cursor/rules" },
+        { "type": "score_min", "dimension": "total_score", "min_value": 60 }
       ]
     },
     {
@@ -31,6 +43,16 @@
         "Generates validate-api skill for OpenAPI spec",
         "Recommends ruff linting hook if ruff detected",
         "AGENTS.md contains Python-specific conventions"
+      ],
+      "assertions": [
+        { "type": "file_exists", "path": "CLAUDE.md" },
+        { "type": "file_exists", "path": "AGENTS.md" },
+        { "type": "file_contains", "path": "CLAUDE.md", "pattern": "[Ff]ast[Aa][Pp][Ii]|FastAPI" },
+        { "type": "file_contains", "path": "CLAUDE.md", "pattern": "pytest|py\\.test" },
+        { "type": "file_not_contains", "path": "CLAUDE.md", "pattern": "\\[PROJECT_NAME\\]|PLACEHOLDER" },
+        { "type": "file_min_size", "path": "CLAUDE.md", "min_bytes": 200 },
+        { "type": "file_min_size", "path": "AGENTS.md", "min_bytes": 200 },
+        { "type": "score_min", "dimension": "total_score", "min_value": 60 }
       ]
     },
     {
@@ -44,6 +66,13 @@
         "Does NOT create skills for non-existent commands",
         "Recommends superpowers as the only plugin",
         "Total files generated is fewer than 8"
+      ],
+      "assertions": [
+        { "type": "file_exists", "path": "CLAUDE.md" },
+        { "type": "file_not_contains", "path": "CLAUDE.md", "pattern": "\\[PROJECT_NAME\\]|PLACEHOLDER|TODO:" },
+        { "type": "file_min_size", "path": "CLAUDE.md", "min_bytes": 100 },
+        { "type": "max_file_count", "base_dir": ".", "max_files": 8 },
+        { "type": "score_min", "dimension": "total_score", "min_value": 40 }
       ]
     },
     {
@@ -58,6 +87,11 @@
         "Does NOT generate a custom TDD skill",
         "Does NOT generate a custom code-review skill",
         "Custom skills are ONLY for project-specific workflows"
+      ],
+      "assertions": [
+        { "type": "file_exists", "path": "CLAUDE.md" },
+        { "type": "no_skill_named", "pattern": "debug|tdd|code-review" },
+        { "type": "score_min", "dimension": "specificity", "min_value": 15 }
       ]
     },
     {
@@ -71,6 +105,10 @@
         "Identifies any MCP servers for services not in project",
         "Reports findings categorized as Critical, Warning, or Info",
         "Offers to fix issues found"
+      ],
+      "assertions": [
+        { "type": "output_contains", "pattern": "[Cc]ritical|[Ww]arning|[Ii]nfo" },
+        { "type": "output_contains", "pattern": "[Aa]udit|[Rr]eport|[Ss]can" }
       ]
     },
     {
@@ -84,6 +122,13 @@
         "AGENTS.md contains Architecture section",
         "AGENTS.md contains Agent Instructions section",
         "AGENTS.md does NOT contain Claude Code-specific references"
+      ],
+      "assertions": [
+        { "type": "file_exists", "path": "AGENTS.md" },
+        { "type": "file_contains", "path": "AGENTS.md", "pattern": "##.*[Cc]ommand|##.*[Aa]rchitecture" },
+        { "type": "file_not_contains", "path": "AGENTS.md", "pattern": "CLAUDE\\.md|\\.claude/" },
+        { "type": "file_min_size", "path": "AGENTS.md", "min_bytes": 300 },
+        { "type": "frontmatter_absent", "path": "AGENTS.md" }
       ]
     },
     {
@@ -97,6 +142,12 @@
         "CLAUDE.md documents the monorepo structure and package responsibilities",
         "Rules include monorepo boundary guidance",
         "Does NOT treat the monorepo as a single flat project"
+      ],
+      "assertions": [
+        { "type": "file_exists", "path": "CLAUDE.md" },
+        { "type": "file_contains", "path": "CLAUDE.md", "pattern": "monorepo|workspace|packages" },
+        { "type": "file_min_size", "path": "CLAUDE.md", "min_bytes": 400 },
+        { "type": "score_min", "dimension": "total_score", "min_value": 60 }
       ]
     },
     {
@@ -109,6 +160,9 @@
         "Flags agents with overlapping responsibilities",
         "Reports duplicate count in the summary",
         "Suggests consolidation or removal for duplicates"
+      ],
+      "assertions": [
+        { "type": "output_contains", "pattern": "[Dd]uplicate|[Oo]verlap|[Cc]onsolidat" }
       ]
     },
     {
@@ -121,6 +175,12 @@
         "Generated CLAUDE.md does not mention frameworks the project does not use",
         "Skills reference only commands that actually exist in the project",
         "No placeholder or TODO content appears in generated files"
+      ],
+      "assertions": [
+        { "type": "file_exists", "path": "CLAUDE.md" },
+        { "type": "file_not_contains", "path": "CLAUDE.md", "pattern": "\\[PROJECT_NAME\\]|PLACEHOLDER|TODO:" },
+        { "type": "no_placeholder_in_dir", "dir": ".claude" },
+        { "type": "score_min", "dimension": "specificity", "min_value": 15 }
       ]
     }
   ]
