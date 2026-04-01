@@ -4,6 +4,7 @@ description: Reviews generated scaffold files for correctness, format compliance
 tools:
   - Read
   - Grep
+  - Bash
 model: haiku
 maxTurns: 10
 ---

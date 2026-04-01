@@ -83,15 +83,22 @@ cd cortex
 ## How it works
 
 ```
-Your Repo --> [Heuristic Pre-scan] --> [3 Parallel Subagents] --> [Quality Review] --> Files
-                                              |
-                                        ------+------
-                                        |     |     |
-                                        v     v     v
-                                   Repo    Skill   Main
-                                  Analyzer Recomm  Thread
-                                  (deep   (official (README,
-                                  arch)   first)   configs)
+Your Repo --> [Heuristic Pre-scan] --> [2 Parallel Subagents + Main Thread] --> [Quality Review] --> Files
+                                                    |
+                                              ------+------
+                                              |     |     |
+                                              v     v     v
+                                         Repo    Skill   Main
+                                        Analyzer Recomm  Thread
+                                        (deep   (official (reads key
+                                        arch)   first)   files)
+                                                    |
+                                              ------+------
+                                              |           |
+                                              v           v
+                                         Codex        Quality
+                                        Specialist   Reviewer
+                                        (AGENTS.md)  (validate)
 ```
 
 ## Architecture

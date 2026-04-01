@@ -5,6 +5,8 @@
   "author": {
     "name": "learnaiforlife"
   },
+  "homepage": "https://github.com/learnaiforlife/cortex",
+  "repository": "https://github.com/learnaiforlife/cortex",
   "keywords": ["scaffold", "setup", "agents", "skills", "rules", "mcp", "cursor", "codex", "cortex"],
   "license": "MIT"
 }

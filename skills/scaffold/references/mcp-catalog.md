@@ -189,7 +189,7 @@ Known MCP servers with detection signals and configuration templates. Use this c
 ### sqlite
 - **Transport**: stdio
 - **Command**: `npx`
-- **Args**: `["-y", "@modelcontextprotocol/server-sqlite", "--db-path", "${SQLITE_DB_PATH}"]`
+- **Args**: `["-y", "@anthropic-ai/mcp-server-sqlite", "--db-path", "${SQLITE_DB_PATH}"]`
 - **Trigger when**:
   - `.sqlite`, `.db`, or `.sqlite3` files in the project
   - `better-sqlite3` or `sql.js` in package.json dependencies
@@ -208,7 +208,7 @@ Known MCP servers with detection signals and configuration templates. Use this c
   "sqlite": {
     "type": "stdio",
     "command": "npx",
-    "args": ["-y", "@modelcontextprotocol/server-sqlite", "--db-path", "${SQLITE_DB_PATH}"]
+    "args": ["-y", "@anthropic-ai/mcp-server-sqlite", "--db-path", "${SQLITE_DB_PATH}"]
   }
 }
 ```
@@ -276,7 +276,7 @@ Known MCP servers with detection signals and configuration templates. Use this c
 ### slack
 - **Transport**: stdio
 - **Command**: `npx`
-- **Args**: `["-y", "@anthropics/slack-mcp"]`
+- **Args**: `["-y", "@anthropic-ai/mcp-server-slack"]`
 - **Trigger when**:
   - `@slack/bolt`, `@slack/web-api`, or `@slack/events-api` in dependencies
   - Slack webhook URLs in configuration
@@ -294,7 +294,7 @@ Known MCP servers with detection signals and configuration templates. Use this c
   "slack": {
     "type": "stdio",
     "command": "npx",
-    "args": ["-y", "@anthropics/slack-mcp"],
+    "args": ["-y", "@anthropic-ai/mcp-server-slack"],
     "env": {
       "SLACK_BOT_TOKEN": "${SLACK_BOT_TOKEN}",
       "SLACK_TEAM_ID": "${SLACK_TEAM_ID}"

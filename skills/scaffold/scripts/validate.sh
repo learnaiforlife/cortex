@@ -61,11 +61,23 @@ done
 # Check JSON files are valid
 for f in "$REPO_DIR/.mcp.json" "$REPO_DIR/.claude/settings.json" "$REPO_DIR/.cursor/mcp.json"; do
   [ -f "$f" ] || continue
-  if python3 -c "import json; json.load(open('$f'))" 2>/dev/null || node -e "JSON.parse(require('fs').readFileSync('$f','utf8'))" 2>/dev/null; then
-    echo "OK: $f (valid JSON)"
+  if command -v python3 &>/dev/null; then
+    if python3 -c "import json; json.load(open('$f'))" 2>/dev/null; then
+      echo "OK: $f (valid JSON)"
+    else
+      echo "ERROR: $f is not valid JSON"
+      ERRORS=$((ERRORS + 1))
+    fi
+  elif command -v node &>/dev/null; then
+    if node -e "JSON.parse(require('fs').readFileSync('$f','utf8'))" 2>/dev/null; then
+      echo "OK: $f (valid JSON)"
+    else
+      echo "ERROR: $f is not valid JSON"
+      ERRORS=$((ERRORS + 1))
+    fi
   else
-    echo "ERROR: $f is not valid JSON"
-    ERRORS=$((ERRORS + 1))
+    echo "SKIP: $f (no JSON validator available — install python3 or node)"
+    WARNINGS=$((WARNINGS + 1))
   fi
 done
 

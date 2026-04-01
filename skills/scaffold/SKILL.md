@@ -65,8 +65,8 @@ Launch these two subagents **in parallel** using the Agent tool:
 - This agent deep-reads key files and returns architecture, patterns, domain concepts, commands, testing info, and gotchas.
 
 **Subagent 2: skill-recommender**
-- Prompt: "Here is the ProjectProfile JSON: ```{PROJECT_PROFILE}```. The repo is at `{REPO_DIR}`. Read the official plugin and MCP catalogs, then return your full recommendations."
-- This agent checks `${CLAUDE_SKILL_DIR}/references/official-plugins-catalog.md` and `${CLAUDE_SKILL_DIR}/references/mcp-catalog.md`, then recommends official plugins, MCP servers, custom skills, agents, rules, and hooks.
+- Prompt: "Here is the ProjectProfile JSON: ```{PROJECT_PROFILE}```. The repo is at `{REPO_DIR}`. The official plugin catalog is at `{resolved path to references/official-plugins-catalog.md}` and the MCP catalog is at `{resolved path to references/mcp-catalog.md}`. Read both catalogs, then return your full recommendations."
+- IMPORTANT: You must resolve `${CLAUDE_SKILL_DIR}/references/official-plugins-catalog.md` and `${CLAUDE_SKILL_DIR}/references/mcp-catalog.md` to absolute paths BEFORE passing them in the subagent prompt. Subagents do not have access to `${CLAUDE_SKILL_DIR}`.
 
 **While subagents work**, read these files yourself in the main thread:
 - `{REPO_DIR}/README.md`
@@ -265,7 +265,7 @@ When `$ARGUMENTS` is "optimize", optimize the existing setup using evals and fre
 
 Find all custom skills in the project:
 ```bash
-find "$CWD/.claude/skills" -name "SKILL.md" 2>/dev/null
+find ".claude/skills" -name "SKILL.md" 2>/dev/null
 ```
 
 ### Step 2: Check Skill Evals
