@@ -10,6 +10,7 @@ import os
 import shutil
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
@@ -116,7 +117,6 @@ def run_baseline_eval(config: dict):
         results_path = SCRIPT_DIR / "results.tsv"
         with open(results_path, "w") as f:
             f.write("iteration\ttimestamp\tscore\tdelta\tchange_summary\tstatus\n")
-            from datetime import datetime, timezone
             ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
             f.write(f"0\t{ts}\t{total:.1f}\t0\tbaseline\tBASELINE\n")
 

@@ -1,7 +1,7 @@
 ---
 name: scaffold
-description: "The ultimate AI dev setup plugin. Analyzes any repo and generates complete scaffolding (CLAUDE.md, agents, skills, rules, MCP, hooks) for Claude Code, Cursor, and Codex. Also audits and optimizes existing setups. Use when: setting up a project for AI dev, running '/scaffold', '/scaffold audit', '/scaffold optimize', or any GitHub URL for scaffolding."
-argument-hint: "[github-url-or-path] or [audit|optimize]"
+description: "The ultimate AI dev setup plugin. Analyzes any repo and generates complete scaffolding (CLAUDE.md, agents, skills, rules, MCP, hooks) for Claude Code, Cursor, and Codex. Also audits, optimizes, and discovers your full dev environment. Use when: setting up a project for AI dev, running '/scaffold', '/scaffold audit', '/scaffold optimize', '/scaffold discover', or any GitHub URL for scaffolding."
+argument-hint: "[github-url-or-path] or [audit|optimize|discover]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, WebFetch
 ---
 
@@ -9,10 +9,34 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, WebFetch
 
 You are the Cortex orchestrator. You analyze repositories and generate complete, project-specific AI development setups for Claude Code, Cursor, and Codex.
 
+## Variant Dispatch
+
+Before mode routing, check if a specialized variant should handle this repo. This only applies to Scaffold Mode (not audit, optimize, or discover).
+
+If `$ARGUMENTS` is a repo URL or path (not "audit", "optimize", or "discover"):
+
+1. Check if `${CLAUDE_SKILL_DIR}/variants/dispatch-table.json` exists.
+2. If yes, determine REPO_DIR (same logic as Step 1), then evaluate each variant's signals:
+   - `file_exists`: Check if the file or glob pattern exists in REPO_DIR
+   - `dir_count`: Count matching directories, compare to `min`
+   - `file_count`: Count total files (excluding specified dirs), compare to `max`
+   - `no_key_framework`: Check that none of the listed frameworks are detected
+3. If a variant matches (according to its `match` rule — "any" means any signal, "all" means all signals):
+   - Read `${CLAUDE_SKILL_DIR}/{variant.file}`
+   - Use that variant's instructions instead of the main SKILL.md for the steps it overrides or extends (typically Steps 2-6). Each variant specifies which steps it modifies in its header.
+   - Log: `"Using variant: {name} (matched: {signal details})"`
+4. If multiple variants match, use the one with highest `priority`.
+5. If no variant matches, proceed with the default SKILL.md.
+
+Variant dispatch happens BEFORE mode routing. Variant files may override or extend Steps 2-6; they share Steps 1 and 7-9 with the main SKILL.md. Always read the variant's header to see exactly which steps it modifies.
+
+---
+
 ## Mode Routing
 
 Determine the mode from `$ARGUMENTS`:
 
+- If `$ARGUMENTS` starts with **"discover"** --> jump to [Discover Mode](#discover-mode)
 - If `$ARGUMENTS` is exactly **"audit"** --> jump to [Audit Mode](#audit-mode)
 - If `$ARGUMENTS` is exactly **"optimize"** --> jump to [Optimize Mode](#optimize-mode)
 - Otherwise --> proceed with [Scaffold Mode](#scaffold-mode) (treat `$ARGUMENTS` as a repo URL or path)
@@ -281,12 +305,12 @@ If the scaffold had issues (quality-reviewer required fixes), use status `partia
 
 After printing the quality score, if the total score is below 70, analyze the weakest dimension and print one specific, actionable suggestion:
 
-- If **format_compliance** < 15: print "Format issue detected: Check agent files for YAML frontmatter errors. Common cause: `tools` field written as comma-separated string instead of YAML list. Run `/scaffold-optimize` to fix automatically."
-- If **specificity** < 15: print "Specificity issue detected: CLAUDE.md may contain placeholder text or generic commands. Re-read the project's package.json/pyproject.toml and replace generic commands with actual ones. Run `/scaffold-optimize` to fix automatically."
-- If **completeness** < 15: print "Completeness issue detected: Missing output for one or more tools. Verify: CLAUDE.md exists? .cursor/rules/*.mdc exists? AGENTS.md exists? At least one .claude/rules/*.md? Run `/scaffold-optimize` to fix automatically."
-- If **structural_quality** < 15: print "Structural issue detected: Some files may be too short or missing body content. Agents need system prompts after frontmatter. Skills need workflow steps. Run `/scaffold-optimize` to fix automatically."
+- If **format_compliance** < 15: print "Format issue detected: Check agent files for YAML frontmatter errors. Common cause: `tools` field written as comma-separated string instead of YAML list. Run `/scaffold optimize` to fix automatically."
+- If **specificity** < 15: print "Specificity issue detected: CLAUDE.md may contain placeholder text or generic commands. Re-read the project's package.json/pyproject.toml and replace generic commands with actual ones. Run `/scaffold optimize` to fix automatically."
+- If **completeness** < 15: print "Completeness issue detected: Missing output for one or more tools. Verify: CLAUDE.md exists? .cursor/rules/*.mdc exists? AGENTS.md exists? At least one .claude/rules/*.md? Run `/scaffold optimize` to fix automatically."
+- If **structural_quality** < 15: print "Structural issue detected: Some files may be too short or missing body content. Agents need system prompts after frontmatter. Skills need workflow steps. Run `/scaffold optimize` to fix automatically."
 
-If the score is >= 70 but < 80, print: "Score is acceptable but could be higher. Run `/scaffold-optimize auto-improve` for autonomous improvement."
+If the score is >= 70 but < 80, print: "Score is acceptable but could be higher. Run `/scaffold optimize auto-improve` for autonomous improvement."
 
 If the score is >= 80, print nothing extra (quality is good).
 
@@ -450,6 +474,15 @@ bash "${CLAUDE_SKILL_DIR}/scripts/auto-improve.sh" "${CLAUDE_SKILL_DIR}"
    - If new avg score > baseline: **keep** the edit. Commit with message `"auto-improve: [dimension] [before]->[after]"`.
    - If new avg score <= baseline: **revert** the edit with `git checkout -- "${CLAUDE_SKILL_DIR}/SKILL.md"`.
 
+### Step 3B: Handle DERIVED Changes
+
+**Only if the change was KEPT in Step 3** (score improved): If the skill-improver classified its change as **DERIVED**, dispatch the **variant-dispatcher** subagent to extract the conditional logic into a variant file:
+
+- Prompt: "The skill-improver flagged a DERIVED change for [repo type]. Extract the conditional blocks from SKILL.md at `{CLAUDE_SKILL_DIR}/SKILL.md` into `variants/SKILL-{type}.md`. Update `variants/dispatch-table.json`. SKILL.md path: `{CLAUDE_SKILL_DIR}/SKILL.md`. Dispatch table: `{CLAUDE_SKILL_DIR}/variants/dispatch-table.json`."
+- After extraction, re-score to verify no regression.
+
+If the change was FIX or CAPTURED, skip this step.
+
 ### Step 4: Repeat or Report
 
 If the edit was kept and the score is still < 80, go back to Step 2 for another iteration. Maximum 5 iterations per auto-improve session.
@@ -550,4 +583,234 @@ When scaffolding multiple repos in sequence (e.g., from a list of URLs), follow 
 
 Total: [n] repos, [n] success, [n] partial, [n] crash
 Results log: ~/.cortex/scaffold-results.tsv
+```
+
+---
+
+## Discover Mode
+
+When `$ARGUMENTS` starts with "discover", run the machine-wide discovery and multi-level setup generation pipeline. This scans the developer's environment, builds a DeveloperDNA profile, classifies patterns as user-level vs project-level, and generates a cohesive AI setup across all levels.
+
+**Everything runs locally. Nothing leaves the machine. All scanning is read-only.**
+
+### Step D1: Permission and Directory Selection
+
+Parse any directories from `$ARGUMENTS` (after "discover"). If `--user-level-only` is present, note it for Step D7.
+
+Present the user with a permission prompt:
+
+```
+Cortex Discover will scan your development environment to build a complete developer profile.
+
+What it scans:
+  - Git repositories in specified directories
+  - Installed CLI tools and their versions
+  - Running services (port checks only)
+  - Integration configs (checks existence only, never reads credentials)
+
+What it does NOT do:
+  - Read file contents beyond package manifests
+  - Read environment variable values (only checks if set)
+  - Send any data externally
+  - Modify any existing files
+
+Directories to scan: [list directories or defaults]
+
+Proceed? [Yes / Customize directories / Cancel]
+```
+
+Default directories (if none specified): `~/Documents`, `~/workspace`, `~/projects`, `~/code`, `~/Desktop`.
+
+If the user wants to customize, ask for a comma-separated list of directories.
+
+If the user cancels, stop immediately.
+
+### Step D2: Run Discovery Engine
+
+Execute the discovery orchestrator (shell scripts only, no LLM calls):
+
+```bash
+bash "${CLAUDE_SKILL_DIR}/scripts/discover-orchestrator.sh" $SCAN_DIRS > /tmp/cortex-developer-dna.json
+```
+
+This runs 5 discovery scripts in parallel:
+- `discover-projects.sh` — finds all git repos, profiles each
+- `discover-tools.sh` — detects CLIs, IDEs, package managers
+- `discover-services.sh` — checks running ports, Docker containers
+- `discover-integrations.sh` — checks Jira/Slack/GitHub/Sentry/etc configs
+- `discover-company.sh` — detects internal registries, conventions
+
+**Performance target**: Under 60 seconds for 100 repos.
+
+Read the output JSON. This is the DeveloperDNA.
+
+### Step D3: Preview Results
+
+Present a summary of what was discovered. Do NOT proceed to generation without user confirmation.
+
+```
+## Discovery Results
+
+### Developer Profile
+- Role: [fullstack-engineer / backend-engineer / etc.]
+- Dominant language: [language]
+- Active projects: [N] (of [total] total)
+
+### Projects Found
+| Project | Language | Framework | Activity |
+|---------|----------|-----------|----------|
+| [name]  | [lang]   | [fw]      | active   |
+| ...     |          |           |          |
+
+### Tools & Services
+- CLIs: [list installed]
+- Running services: [list]
+- Docker containers: [count]
+
+### Integrations Detected
+- [Jira / Slack / GitHub / Sentry / etc. with signals]
+
+### Cross-Project Patterns
+- [dependency] used in [N]/[total] repos → will be user-level
+- [test framework] common across [N]% of repos
+- [linter] common across [N]% of repos
+
+### What Will Be Generated
+
+**User-level (~/.claude/):**
+- CLAUDE.md with developer profile
+- MCP servers: [list]
+- Global rules: [list]
+
+**Project-level ([N] active repos):**
+- Per-project CLAUDE.md, agents, skills, rules, MCP configs
+- Only project-specific items (global patterns excluded)
+
+Generate AI setup? [Yes / User-level only / Review full DNA JSON / Cancel]
+```
+
+### Step D4: Classify Patterns (Cross-Project Analysis)
+
+Dispatch the **cross-project-analyzer** subagent:
+
+- Before dispatching, read `${CLAUDE_SKILL_DIR}/references/discover-integration-catalog.md` and include its content in the prompt (subagents cannot resolve `${CLAUDE_SKILL_DIR}`).
+- Prompt: "Analyze this DeveloperDNA and classify every pattern as user-level, candidate, or project-level. Detect service relationships. Identify deduplication opportunities. Here is the integration catalog for classification rules: ```{INTEGRATION_CATALOG_CONTENT}```. DeveloperDNA: ```{DNA_JSON}```"
+- Output: ClassificationPlan JSON.
+
+### Step D5: Synthesize Generation Plan
+
+Dispatch the **dna-synthesizer** subagent:
+
+- Before dispatching, read `${CLAUDE_SKILL_DIR}/references/user-level-formats.md` and include its content in the prompt (subagents cannot resolve `${CLAUDE_SKILL_DIR}`).
+- Prompt: "Given this DeveloperDNA and ClassificationPlan, produce a concrete GenerationPlan listing every file to create at user-level and project-level. Resolve conflicts and handle deduplication. Here is the user-level formats spec: ```{USER_LEVEL_FORMATS_CONTENT}```. DeveloperDNA: ```{DNA_JSON}```. ClassificationPlan: ```{CLASSIFICATION_JSON}```"
+- Output: GenerationPlan JSON.
+
+### Step D6: Generate User-Level Setup
+
+Dispatch the **user-level-generator** subagent:
+
+- Prompt: "Based on this GenerationPlan and DeveloperDNA, produce the user-level AI setup file contents. Return all generated content in your output — do NOT write files to disk. Writing is handled later in Step D9 after quality review. For each file, output its target path and content. GenerationPlan: ```{GENERATION_PLAN_JSON}```. DeveloperDNA: ```{DNA_JSON}```"
+- The agent generates:
+  - `~/.claude/CLAUDE.md` — developer profile + global conventions
+  - `~/.claude/.mcp.json` — integration MCP servers (if any detected)
+  - `~/.claude/rules/*.md` — global rules (company conventions, security, shared testing/linting)
+
+**If `--user-level-only` was specified, skip D7 (project-level scaffolding) and proceed directly to Step D8 (quality review for user-level files) then D9 (write) then D10 (summary).**
+
+### Step D7: Generate Project-Level Setups (Batch)
+
+For each active project in the DeveloperDNA:
+
+**Note**: Variant dispatch (monorepo, minimal) DOES apply during D7 batch scaffolding. Each project is evaluated against the dispatch table independently.
+
+1. Set `REPO_DIR` to the project's path.
+2. Inject DeveloperDNA context into the scaffold run:
+   - Pass the `skip_patterns` list from the GenerationPlan (patterns already at user-level).
+   - Pass the `serviceRelationships` context so project scaffolds understand cross-project connections.
+3. Run the standard Scaffold Mode Steps 2-9 for this project, with these modifications:
+   - **Step 3 (Subagents)**: Include DeveloperDNA summary in the repo-analyzer and skill-recommender prompts.
+   - **Step 5 (Generate)**: Skip generating rules/skills for patterns marked "covered at user-level".
+   - **Step 5 (Generate)**: Do NOT generate user-level MCP servers in project `.mcp.json`.
+   - **Step 6 (Quality Review)**: Score as usual, but do not penalize missing patterns that are at user-level.
+
+**Parallelism**: If projects are in different directories (not nested), scaffold up to 3 projects in parallel using background agents.
+
+**If there are more than 10 active projects**: Ask the user which projects to scaffold. Show the list sorted by activity (most recent first) and let them select. Default to the 5 most active.
+
+### Step D8: Quality Review (Per-Level)
+
+After all generation is complete:
+
+1. Review user-level files: dispatch quality-reviewer on `~/.claude/` output.
+2. Review each project's output: already done in Step D7's quality gate (Step 6).
+3. Check for cross-level duplication: scan for patterns that appear in BOTH user-level rules AND project-level rules. Flag these.
+
+### Step D9: Write All Files
+
+**Note**: The user-level-generator in Step D6 generates file CONTENT but does NOT write to disk. Step D9 handles all writes after quality review.
+
+Write files in this order:
+
+1. **User-level files** → `~/.claude/` (CLAUDE.md, .mcp.json, rules/)
+   - Write the content produced by the user-level-generator in Step D6.
+   - For existing files: MERGE using the same strategy as Scaffold Mode Step 7.
+   - For `.mcp.json`: deep merge (new servers added, existing preserved).
+   - For `CLAUDE.md`: preserve existing sections, add new sections, update stale sections.
+
+2. **Project-level files** → each repo directory
+   - Already written in Step D7 by the per-project scaffold runs (each runs its own Step 7).
+
+### Step D10: Discover Summary Report
+
+Print a unified summary:
+
+```
+## Cortex Discover Complete
+
+### User-Level Setup (~/.claude/)
+- [path] — [what it contains]
+- [path] — [what it contains]
+- ...
+
+### Project-Level Setups
+| Project | Files Generated | Score | Weakest Dimension |
+|---------|----------------|-------|-------------------|
+| [name]  | [N] files      | [N]   | [dim]             |
+| ...     |                |       |                   |
+
+### Cross-Project Intelligence Applied
+- [pattern] deduplicated to user-level (was in [N] projects)
+- [relationship]: [provider] → [consumer] (API contract)
+- ...
+
+### Integration MCP Servers Configured
+- [server] — [what it provides] (env vars needed: [list])
+- ...
+
+### Manual TODOs
+- [ ] Set environment variable: [VAR_NAME] for [integration]
+- [ ] Install recommended plugins: `claude plugins install [name]`
+- [ ] Review and customize ~/.claude/CLAUDE.md
+- ...
+
+### What's Next
+- Start a new Claude Code session to load the updated setup
+- Run `/scaffold [repo]` to scaffold individual repos later
+- Run `/scaffold discover` again after setting up new projects
+```
+
+### Step D11: Score and Log Results
+
+Log the discover run to `~/.cortex/discover-results.tsv`:
+
+```bash
+mkdir -p "$HOME/.cortex"
+```
+
+TSV columns: `timestamp`, `scan_dirs`, `total_projects`, `active_projects`, `integrations_found`, `user_level_files`, `project_level_files`, `status`, `description`
+
+Also save the DeveloperDNA for future comparisons:
+
+```bash
+cp /tmp/cortex-developer-dna.json "$HOME/.cortex/developer-dna.json"
 ```

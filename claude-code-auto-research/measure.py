@@ -117,7 +117,7 @@ Be strict. If you cannot clearly see evidence that an expectation is met, mark i
         details = []
 
         for i, expectation in enumerate(expectations):
-            pattern = rf"EXPECTATION\s+{i+1}\s*:\s*(MET|NOT_MET|UNCLEAR)"
+            pattern = rf"EXPECTATION\s+{i+1}\s*:\s*[`*]*(MET|NOT_MET|UNCLEAR)[`*]*"
             match = re.search(pattern, output)
             status = match.group(1) if match else "UNCLEAR"
             if status == "MET":

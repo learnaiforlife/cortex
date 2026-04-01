@@ -96,4 +96,7 @@ printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
   "$DESCRIPTION" \
   >> "$LOG_FILE"
 
+# Write score to single-value file for hooks (Stop hook reads this)
+echo "$SCORE_TOTAL" > "$HOME/.cortex/last-scaffold-score.txt"
+
 echo "Logged: $REPO_ID score=$SCORE_TOTAL status=$STATUS ($LOG_FILE)"

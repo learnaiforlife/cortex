@@ -1,22 +1,30 @@
 # Cortex
 
-**The intelligence layer for AI-powered development.**
+**AI development setup, automated.**
 
-One command. Any repo. Complete AI setup for Claude Code, Cursor, and Codex.
+One command. Any repo. Generates AI configuration for Claude Code, Cursor, and Codex.
 
 ## What it does
 
-Point it at any GitHub repo or local project:
+Point it at any repo:
 
 ```
 /scaffold https://github.com/your-org/your-project
 ```
 
 Cortex will:
-1. **Deep-analyze** your codebase (architecture, patterns, domain, services)
+1. **Analyze** your codebase (architecture, patterns, domain, services)
 2. **Recommend official plugins** before generating custom skills
 3. **Generate tailored setup** for all three AI coding tools
 4. **Review quality** before writing any files
+
+Or scan your entire dev environment:
+
+```
+/scaffold discover
+```
+
+Cortex will find all your projects, tools, services, and integrations, then generate a cohesive setup at both user-level (`~/.claude/`) and per-project level.
 
 ### Generated output (example for a Next.js + Prisma project):
 
@@ -35,25 +43,14 @@ Cortex will:
 **Codex:**
 - `AGENTS.md` -- comprehensive agent instructions
 
-**Plugin recommendations:**
-- superpowers (TDD, debugging, code review)
-- hookify (safety hooks)
-- context7 (Next.js + Prisma docs)
-- frontend-design (UI components)
+## Modes
 
-## Three Modes
-
-### `/scaffold [repo]` -- Generate
-Analyze any repo and generate complete AI setup.
-
-### `/scaffold audit` -- Audit
-Scan existing setup for duplicates, stale skills, broken configs.
-
-### `/scaffold optimize` -- Optimize
-Run evals on existing skills. A/B test improvements. Auto-fix.
-
-### `/scaffold-optimize auto-improve` -- Self-Improving Skills
-Autoresearch-style loop: measure scaffold quality, edit SKILL.md, re-measure, keep only improvements.
+| Command | What it does |
+|---------|-------------|
+| `/scaffold [repo]` | Analyze repo, generate complete AI setup |
+| `/scaffold audit` | Scan existing setup for duplicates, stale configs, broken references |
+| `/scaffold optimize` | Run evals, check freshness, auto-improve skills |
+| `/scaffold discover` | Scan your machine, generate user-level + per-project setup |
 
 ## Install
 
@@ -63,85 +60,77 @@ cd cortex
 ./install.sh
 ```
 
-### Quick start:
-```
-/scaffold                                    # current directory
-/scaffold https://github.com/vercel/next.js  # any GitHub repo
-/scaffold /path/to/project                   # local path
-/scaffold audit                              # audit existing setup
-/scaffold optimize                           # improve existing skills
-```
+## How it compares
 
-## Why Cortex beats everything else
+| Feature | Cortex | Manual Setup | Template Tools |
+|---------|--------|--------------|----------------|
+| Multi-tool output (Claude + Cursor + Codex) | Yes | One at a time | Usually one tool |
+| Dynamic codebase analysis | Yes | Manual | No (templates) |
+| Recommends official plugins first | Yes | You research | No awareness |
+| Audits existing setup | Yes | Manual review | No |
+| Quality scoring (0-100) | Yes | No | No |
+| Self-improving via autoresearch loop | Yes | No | No |
+| Machine-wide discovery | Yes | No | No |
+| Variant dispatch (monorepo, minimal) | Yes | N/A | No |
 
-| Feature | Cortex | Manual Setup | Other tools |
-|---------|--------|--------------|-------------|
-| Generates for ALL tools | Claude Code + Cursor + Codex | One at a time | Usually one tool |
-| AI-powered analysis | Deep code understanding | Manual | Template-based |
-| Recommends official plugins | Checks catalog first | You research | No awareness |
-| Audits existing setup | Finds stale/broken | Manual review | No |
-| Optimizes with evals | A/B tests skills | Manual | No |
-| Works on any project | Any language/framework | Each project | Limited |
-
-## How it works
-
-```
-Your Repo --> [Heuristic Pre-scan] --> [2 Parallel Subagents + Main Thread] --> [Quality Review] --> Files
-                                                    |
-                                              ------+------
-                                              |     |     |
-                                              v     v     v
-                                         Repo    Skill   Main
-                                        Analyzer Recomm  Thread
-                                        (deep   (official (reads key
-                                        arch)   first)   files)
-                                                    |
-                                              ------+------
-                                              |           |
-                                              v           v
-                                         Codex        Quality
-                                        Specialist   Reviewer
-                                        (AGENTS.md)  (validate)
-```
+**Related projects:** [ai-nexus](https://github.com/AiNexusHub/ai-nexus) (rule routing), [rule-porter](https://github.com/bosun-ai/rule-porter) (format conversion), [akm](https://github.com/rinormaloku/akm) (rule indexing). Cortex differs by performing per-repo analysis + multi-artifact generation + measurement-driven self-improvement.
 
 ## Architecture
 
-- **7 specialized subagents** for parallel analysis and iterative improvement
-- **Reference docs** with exact file format specs for all 3 tools
-- **Official plugin catalog** -- recommends before generating custom skills
-- **MCP server catalog** -- matches services to servers
-- **Quantitative scoring** -- 0-100 quality score with 4 weighted dimensions
-- **Eval suite** -- automated assertion-based eval runner with pass rate reporting
-- **Experiment tracking** -- append-only results log for cross-run learning
-- **Iterative improvement** -- autoresearch-style generate-score-improve loop
-- **Self-improving skills** -- agent edits SKILL.md, measures impact, keeps only gains
-- **Quality gate** -- reviewer subagent validates before writing
+```
+/scaffold [repo]
+    |
+    v
+[Variant Dispatch] --> SKILL-monorepo.md or SKILL-minimal.md (if signals match)
+    |
+    v
+[Heuristic Pre-scan] --> [2 Parallel Subagents] --> [Quality Review] --> Files
+                              |           |
+                         Repo Analyzer  Skill Recommender
+                         (deep arch)    (official first)
+                              |
+                         Codex Specialist
+                         (AGENTS.md)
+
+/scaffold discover
+    |
+    v
+[Permission] --> [6 Discovery Scripts] --> [DeveloperDNA] --> [Cross-Project Analysis]
+                      |                         |                    |
+                 Projects, Tools,          Classification      User-level +
+                 Services, Integrations    (user vs project)   Project-level generation
+```
+
+**11 specialized subagents** | **15 scripts** | **2 skill variants** | **14 eval cases** | **7 reference docs**
 
 ## Key Design Decisions
 
-**Official-first philosophy.** The plugin catalog is checked before generating any custom skill. If superpowers already covers TDD and debugging, Cortex recommends it instead of generating redundant custom skills. Custom skills are reserved for project-specific workflows that no official plugin handles.
-
-**Multi-tool output.** Every scaffold run generates files for Claude Code, Cursor, AND Codex simultaneously. No need to run separate tools.
-
-**Quality gate.** A dedicated reviewer subagent validates all generated files before they are written, checking format compliance, specificity (no generic templates), and consistency across tools.
-
-**Autoresearch-inspired iteration.** Borrowed from [Karpathy's autoresearch](https://github.com/karpathy/autoresearch): every scaffold run is scored quantitatively (0-100), logged to an experiment tracker, and optionally improved through an iterative loop that targets the weakest dimension. The self-improving mode applies the same pattern to SKILL.md itself — the agent edits its own instructions, measures the impact, and keeps only improvements.
+- **Official-first.** Plugin catalog checked before generating custom skills. If superpowers covers TDD, recommend it — don't generate a custom version.
+- **Multi-tool parity.** Every run generates for Claude Code, Cursor, AND Codex.
+- **Quality gate.** Reviewer subagent validates all files before writing. 0-100 scoring across 4 dimensions.
+- **Autoresearch-inspired.** Every run is scored, logged, and optionally improved via iterative loop targeting the weakest dimension. Borrowed from [karpathy/autoresearch](https://github.com/karpathy/autoresearch).
+- **Variant dispatch.** Monorepos and minimal projects get specialized handling via dispatch table — no SKILL.md bloat.
+- **Multi-level generation.** Discover mode classifies patterns as user-level (>50% of repos) vs project-level, avoiding duplication.
+- **Privacy-first discovery.** Machine scanning is read-only, local-only, explicit-consent. Never reads credential values.
 
 ## Scripts Reference
 
 | Script | Purpose |
 |--------|---------|
-| `scripts/score.sh <dir>` | Score scaffold output (0-100 JSON) |
-| `scripts/run-skill-evals.sh <dir> [eval-id]` | Run assertions from evals.json |
-| `scripts/log-result.sh <dir> <status> <desc>` | Append to experiment log |
-| `scripts/auto-improve.sh <skill-dir> [iters]` | Autoresearch loop for SKILL.md |
-| `scripts/validate.sh <dir>` | Basic format validation |
-| `scripts/analyze.sh <dir>` | Heuristic project profile |
-| `scripts/audit-existing.sh <dir>` | Audit existing AI setup |
+| `scripts/score.sh` | Score scaffold output (0-100 JSON) |
+| `scripts/run-skill-evals.sh` | Run assertion-based evals |
+| `scripts/log-result.sh` | Append to experiment log |
+| `scripts/auto-improve.sh` | Autoresearch loop for SKILL.md |
+| `scripts/discover-orchestrator.sh` | Machine-wide discovery engine |
+| `scripts/schedule-autorun.sh` | Setup weekly/monthly automation |
+| `scripts/validate.sh` | Basic format validation |
+| `scripts/analyze.sh` | Heuristic project profile |
 
-## Contributing
+## Status
 
-PRs welcome!
+**v0.2.0** — Active development. Tested against 3 fixture projects and 25 real repos via discovery engine. The autoresearch loop and quality scoring are functional but would benefit from broader validation across more project types and larger codebases.
+
+Contributions and feedback welcome.
 
 ## License
 

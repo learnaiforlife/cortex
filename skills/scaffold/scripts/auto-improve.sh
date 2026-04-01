@@ -74,11 +74,11 @@ score_all_fixtures() {
     score_json=$(bash "$SCRIPT_DIR/score.sh" "$fixture" 2>/dev/null || echo '{"total_score":0}')
 
     local s f sp c st
-    s=$(echo "$score_json" | python3 -c "import sys,json; print(json.load(sys.stdin).get('total_score',0))" 2>/dev/null || echo 0)
-    f=$(echo "$score_json" | python3 -c "import sys,json; print(json.load(sys.stdin).get('dimensions',{}).get('format_compliance',{}).get('score',0))" 2>/dev/null || echo 0)
-    sp=$(echo "$score_json" | python3 -c "import sys,json; print(json.load(sys.stdin).get('dimensions',{}).get('specificity',{}).get('score',0))" 2>/dev/null || echo 0)
-    c=$(echo "$score_json" | python3 -c "import sys,json; print(json.load(sys.stdin).get('dimensions',{}).get('completeness',{}).get('score',0))" 2>/dev/null || echo 0)
-    st=$(echo "$score_json" | python3 -c "import sys,json; print(json.load(sys.stdin).get('dimensions',{}).get('structural_quality',{}).get('score',0))" 2>/dev/null || echo 0)
+    s=$(echo "$score_json" | python3 -c "import sys,json; print(int(json.load(sys.stdin).get('total_score',0)))" 2>/dev/null || echo 0)
+    f=$(echo "$score_json" | python3 -c "import sys,json; print(int(json.load(sys.stdin).get('dimensions',{}).get('format_compliance',{}).get('score',0)))" 2>/dev/null || echo 0)
+    sp=$(echo "$score_json" | python3 -c "import sys,json; print(int(json.load(sys.stdin).get('dimensions',{}).get('specificity',{}).get('score',0)))" 2>/dev/null || echo 0)
+    c=$(echo "$score_json" | python3 -c "import sys,json; print(int(json.load(sys.stdin).get('dimensions',{}).get('completeness',{}).get('score',0)))" 2>/dev/null || echo 0)
+    st=$(echo "$score_json" | python3 -c "import sys,json; print(int(json.load(sys.stdin).get('dimensions',{}).get('structural_quality',{}).get('score',0)))" 2>/dev/null || echo 0)
 
     total=$((total + s))
     format_total=$((format_total + f))

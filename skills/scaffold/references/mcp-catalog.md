@@ -343,6 +343,13 @@ Quick reference for all required env vars across all servers:
 | puppeteer | -- | None required | -- |
 | filesystem | -- | None required | -- |
 | memory | -- | None required | -- |
+| jira | `JIRA_URL` | Jira instance URL | Yes |
+| jira | `JIRA_EMAIL` | Jira account email | Yes |
+| jira | `JIRA_API_TOKEN` | Jira API token | Yes |
+| linear | `LINEAR_API_KEY` | Linear personal API key | Yes |
+| notion | `NOTION_API_KEY` | Notion integration token | Yes |
+| datadog | `DD_API_KEY` | Datadog API key | Yes |
+| datadog | `DD_APP_KEY` | Datadog application key | Yes |
 
 ## Generated .mcp.json Template
 
@@ -359,3 +366,137 @@ When generating the final `.mcp.json`, use this structure:
 ```
 
 Always generate a corresponding `.env.example` or document required environment variables when MCP servers need them.
+
+**Note on package names**: MCP server packages below use placeholder names. Before generating `.mcp.json`, verify the package exists with `npm view <package-name>`. Known valid prefixes: `@modelcontextprotocol/server-*`, `@anthropic-ai/mcp-server-*`. Community servers may use different scopes. When in doubt, check https://registry.modelcontextprotocol.io or npm for the current package name.
+
+## Integration Servers (User-Level)
+
+These servers are detected by Cortex Discover and configured at user-level (`~/.claude/.mcp.json`) rather than project-level. They apply to all projects.
+
+---
+
+### jira
+- **Transport**: stdio
+- **Command**: `npx`
+- **Args**: `["-y", "@anthropic-ai/mcp-server-jira"]`
+- **Trigger when**:
+  - `discover-integrations.sh` detects Jira signals (env vars, CLI, config files)
+  - Jira issue keys found in branch names (e.g., `JIRA-\d+`, `PROJ-\d+`)
+  - `JIRA_API_TOKEN` environment variable set
+  - `JIRA_URL` environment variable set
+  - `~/.jira.d/` directory exists
+  - `jira` CLI installed and on PATH
+- **Confidence**: recommended (when detected by Discover)
+- **What it provides**: Create, read, update, and transition Jira issues directly from Claude Code. View sprint boards, search issues with JQL, add comments, and link issues to code changes. Enables full Jira workflow without leaving the terminal.
+- **When to skip**: Team does not use Jira for project management. If using Linear, Asana, or another issue tracker, this server is not relevant.
+- **Security notes**: Requires Jira API token and associated email. Use API tokens scoped to the minimum required permissions. Never use admin-level tokens. Tokens are tied to a specific Atlassian account.
+- **Level note**: User-level MCP server -- applies to all projects. Configure in `~/.claude/.mcp.json`.
+- **Env vars needed**: `JIRA_URL` -- Jira instance URL (e.g., `https://mycompany.atlassian.net`), `JIRA_EMAIL` -- Jira account email, `JIRA_API_TOKEN` -- Jira API token
+- **Configuration**:
+```json
+{
+  "jira": {
+    "type": "stdio",
+    "command": "npx",
+    "args": ["-y", "@anthropic-ai/mcp-server-jira"],
+    "env": {
+      "JIRA_URL": "${JIRA_URL}",
+      "JIRA_EMAIL": "${JIRA_EMAIL}",
+      "JIRA_API_TOKEN": "${JIRA_API_TOKEN}"
+    }
+  }
+}
+```
+
+---
+
+### linear
+- **Transport**: stdio
+- **Command**: `npx`
+- **Args**: `["-y", "@anthropic-ai/mcp-server-linear"]`
+- **Trigger when**:
+  - `LINEAR_API_KEY` environment variable set
+  - `linear` CLI installed and on PATH
+  - Git branch names matching Linear issue patterns (e.g., `LIN-\d+`, `ENG-\d+`)
+- **Confidence**: recommended (when detected by Discover)
+- **What it provides**: Create, read, update, and search Linear issues. View projects, cycles, and team workflows. Transition issue states and add comments directly from Claude Code.
+- **When to skip**: Team does not use Linear. If using Jira or another issue tracker, this server is not relevant.
+- **Security notes**: Requires Linear personal API key. The key grants access to all issues the user can see in Linear. Use personal keys, not workspace-level keys.
+- **Level note**: User-level MCP server -- applies to all projects. Configure in `~/.claude/.mcp.json`.
+- **Env vars needed**: `LINEAR_API_KEY` -- Linear personal API key
+- **Configuration**:
+```json
+{
+  "linear": {
+    "type": "stdio",
+    "command": "npx",
+    "args": ["-y", "@anthropic-ai/mcp-server-linear"],
+    "env": {
+      "LINEAR_API_KEY": "${LINEAR_API_KEY}"
+    }
+  }
+}
+```
+
+---
+
+### notion
+- **Transport**: stdio
+- **Command**: `npx`
+- **Args**: `["-y", "@anthropic-ai/mcp-server-notion"]`
+- **Trigger when**:
+  - `NOTION_API_KEY` environment variable set
+  - `NOTION_TOKEN` environment variable set
+  - References to Notion in project documentation
+- **Confidence**: recommended (when detected by Discover)
+- **What it provides**: Search pages and databases, create and update pages, query database views, manage comments, and access knowledge base content directly from Claude Code.
+- **When to skip**: Team does not use Notion. If documentation and knowledge management lives in Confluence, Google Docs, or the repo itself, skip this.
+- **Security notes**: Requires Notion internal integration token. Create a dedicated integration in Notion's developer settings. The integration only has access to pages explicitly shared with it -- this provides good security scoping.
+- **Level note**: User-level MCP server -- applies to all projects. Configure in `~/.claude/.mcp.json`.
+- **Env vars needed**: `NOTION_API_KEY` -- Notion internal integration token
+- **Configuration**:
+```json
+{
+  "notion": {
+    "type": "stdio",
+    "command": "npx",
+    "args": ["-y", "@anthropic-ai/mcp-server-notion"],
+    "env": {
+      "NOTION_API_KEY": "${NOTION_API_KEY}"
+    }
+  }
+}
+```
+
+---
+
+### datadog
+- **Transport**: stdio
+- **Command**: `npx`
+- **Args**: `["-y", "@anthropic-ai/mcp-server-datadog"]`
+- **Trigger when**:
+  - `DD_API_KEY` environment variable set
+  - `DD_APP_KEY` environment variable set
+  - `datadog-ci` CLI installed and on PATH
+  - `dd-trace` or `datadog-lambda-js` in project dependencies
+  - `datadog.yaml` configuration file exists
+- **Confidence**: recommended (when detected by Discover)
+- **What it provides**: Query metrics, view dashboards, search logs, list monitors, and inspect APM traces from Claude Code. Enables data-driven debugging and performance analysis without leaving the terminal.
+- **When to skip**: Team does not use Datadog. If using Prometheus/Grafana, New Relic, or another monitoring stack, this server is not relevant.
+- **Security notes**: Requires Datadog API and application keys. API keys can send data to Datadog; application keys grant read access to dashboards and metrics. Use keys with minimum required scopes and never use keys with admin permissions.
+- **Level note**: User-level MCP server -- applies to all projects. Configure in `~/.claude/.mcp.json`.
+- **Env vars needed**: `DD_API_KEY` -- Datadog API key, `DD_APP_KEY` -- Datadog application key
+- **Configuration**:
+```json
+{
+  "datadog": {
+    "type": "stdio",
+    "command": "npx",
+    "args": ["-y", "@anthropic-ai/mcp-server-datadog"],
+    "env": {
+      "DD_API_KEY": "${DD_API_KEY}",
+      "DD_APP_KEY": "${DD_APP_KEY}"
+    }
+  }
+}
+```

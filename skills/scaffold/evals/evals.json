@@ -182,6 +182,95 @@
         { "type": "no_placeholder_in_dir", "dir": ".claude" },
         { "type": "score_min", "dimension": "specificity", "min_value": 15 }
       ]
+    },
+    {
+      "id": "discover-machine-scan",
+      "prompt": "/scaffold discover test/fixtures",
+      "expected_output": "DeveloperDNA generated with project discovery and cross-project analysis",
+      "files": [],
+      "expectations": [
+        "Runs discover-orchestrator.sh and produces DeveloperDNA JSON",
+        "Detects all test fixture projects (nextjs-app, python-api, minimal)",
+        "Classifies developer role based on detected projects",
+        "Identifies cross-project patterns (shared dependencies)",
+        "Presents a preview summary before generating files",
+        "Asks for user confirmation before proceeding"
+      ],
+      "assertions": [
+        { "type": "output_contains", "pattern": "[Dd]iscover|[Dd]eveloper.*DNA|[Pp]rofile" },
+        { "type": "output_contains", "pattern": "nextjs-app|python-api|minimal" },
+        { "type": "output_contains", "pattern": "[Pp]roceed|[Gg]enerate|[Cc]onfirm" }
+      ]
+    },
+    {
+      "id": "discover-user-level-generation",
+      "prompt": "/scaffold discover --user-level-only test/fixtures",
+      "expected_output": "User-level AI setup generated at ~/.claude/",
+      "files": [],
+      "expectations": [
+        "Generates user-level CLAUDE.md with developer profile",
+        "Does NOT scaffold individual projects (--user-level-only flag)",
+        "Classifies shared patterns as user-level vs project-level",
+        "User-level rules are generic enough for all projects",
+        "MCP servers in user-level .mcp.json use ${ENV_VAR} syntax, never hardcoded",
+        "Quality review runs on user-level output before writing"
+      ],
+      "assertions": [
+        { "type": "output_contains", "pattern": "user.level|~/.claude" },
+        { "type": "output_contains", "pattern": "[Qq]uality|[Rr]eview|[Ss]core" }
+      ]
+    },
+    {
+      "id": "variant-dispatch-monorepo",
+      "prompt": "/scaffold test/fixtures/nextjs-app",
+      "expected_output": "Variant dispatch evaluated; monorepo variant NOT selected for non-monorepo project",
+      "files": [],
+      "expectations": [
+        "Checks dispatch-table.json for variant signals",
+        "Does NOT select monorepo variant (no turbo.json, nx.json, etc.)",
+        "Does NOT select minimal variant (has framework detected)",
+        "Proceeds with default SKILL.md for scaffold",
+        "Generates standard scaffold output (not monorepo-scoped)"
+      ],
+      "assertions": [
+        { "type": "file_exists", "path": "CLAUDE.md" },
+        { "type": "file_not_contains", "path": "CLAUDE.md", "pattern": "monorepo|workspace|packages/" }
+      ]
+    },
+    {
+      "id": "variant-dispatch-minimal",
+      "prompt": "/scaffold test/fixtures/minimal",
+      "expected_output": "Minimal variant selected, generates only essential files",
+      "files": [],
+      "expectations": [
+        "Checks dispatch-table.json and selects minimal variant",
+        "Generates CLAUDE.md (required for all projects)",
+        "Generates safety rule",
+        "Does NOT generate custom agents for minimal project",
+        "Does NOT generate custom skills for minimal project",
+        "Total generated files is 2-4 (not bloated)"
+      ],
+      "assertions": [
+        { "type": "file_exists", "path": "CLAUDE.md" },
+        { "type": "file_min_size", "path": "CLAUDE.md", "min_bytes": 50 },
+        { "type": "max_file_count", "base_dir": ".", "max_files": 5 }
+      ]
+    },
+    {
+      "id": "cross-project-deduplication",
+      "prompt": "/scaffold discover test/fixtures",
+      "expected_output": "Cross-project patterns identified and deduplicated between user and project levels",
+      "files": [],
+      "expectations": [
+        "Identifies shared dependencies across test fixture projects",
+        "Classifies patterns with frequency >= 50% as user-level",
+        "Does NOT duplicate user-level patterns in project-level output",
+        "Integration MCP servers are classified as user-level when detected",
+        "Service relationships between projects are detected if applicable"
+      ],
+      "assertions": [
+        { "type": "output_contains", "pattern": "user.level|shared|cross.project|dedup" }
+      ]
     }
   ]
 }

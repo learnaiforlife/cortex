@@ -13,6 +13,7 @@ Usage:
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -153,9 +154,9 @@ First, write a one-line summary of what you're changing:
 CHANGE: [summary]
 
 Then output the complete modified file between these markers:
----BEGIN FILE---
+===CORTEX_FILE_START===
 [complete file content]
----END FILE---
+===CORTEX_FILE_END===
 """
 
     model = config.get("model", "sonnet")
@@ -171,12 +172,11 @@ Then output the complete modified file between these markers:
     output = result.stdout
 
     # Extract change summary
-    import re
     change_match = re.search(r"CHANGE:\s*(.+)", output)
     change_summary = change_match.group(1).strip() if change_match else "Unknown modification"
 
     # Extract file content
-    file_match = re.search(r"---BEGIN FILE---\s*\n(.*?)---END FILE---", output, re.DOTALL)
+    file_match = re.search(r"===CORTEX_FILE_START===\s*\n(.*?)===CORTEX_FILE_END===", output, re.DOTALL)
     if not file_match:
         raise RuntimeError("Could not extract modified file from Claude's response")
 

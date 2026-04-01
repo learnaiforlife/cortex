@@ -1,0 +1,38 @@
+{
+  "description": "Routes repo signals to specialized SKILL variants. Evaluated before mode routing in SKILL.md.",
+  "signalEvaluation": {
+    "file_exists": "Check if the file or glob pattern exists in REPO_DIR",
+    "dir_count": "Count directories matching the glob pattern; match if count >= min",
+    "file_count": "Count total files (excluding dirs in 'exclude' list); match if count <= max (inclusive)",
+    "no_key_framework": "Check that no file matching any listed framework's detection pattern exists (e.g., next.config.*, vite.config.*, etc.)"
+  },
+  "variants": [
+    {
+      "name": "monorepo",
+      "file": "variants/SKILL-monorepo.md",
+      "description": "Monorepo projects with workspace packages",
+      "signals": [
+        {"type": "file_exists", "pattern": "turbo.json"},
+        {"type": "file_exists", "pattern": "nx.json"},
+        {"type": "file_exists", "pattern": "lerna.json"},
+        {"type": "file_exists", "pattern": "pnpm-workspace.yaml"},
+        {"type": "dir_count", "pattern": "packages/*", "min": 2},
+        {"type": "dir_count", "pattern": "apps/*", "min": 2}
+      ],
+      "match": "any",
+      "priority": 10
+    },
+    {
+      "name": "minimal",
+      "file": "variants/SKILL-minimal.md",
+      "description": "Minimal projects with few files and no framework",
+      "signals": [
+        {"type": "file_count", "max": 10, "exclude": ["node_modules", ".git", "vendor", "dist"]},
+        {"type": "no_key_framework", "frameworks": ["next", "vite", "express", "fastapi", "django", "flask", "rails", "spring"]}
+      ],
+      "match": "all",
+      "priority": 5
+    }
+  ],
+  "default": "SKILL.md"
+}

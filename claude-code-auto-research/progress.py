@@ -41,7 +41,8 @@ def print_progress(results: list[dict]):
     kept = [r for r in results if r["status"] == "KEPT"]
     discarded = [r for r in results if r["status"] == "DISCARDED"]
     errors = [r for r in results if r["status"] == "ERROR"]
-    best = max(results, key=lambda r: r["score"]) if results else None
+    kept_or_baseline = [r for r in results if r["status"] in ("KEPT", "BASELINE")]
+    best = max(kept_or_baseline, key=lambda r: r["score"]) if kept_or_baseline else None
 
     print("=" * 70)
     print("Claude Code Auto-Research — Progress Report")

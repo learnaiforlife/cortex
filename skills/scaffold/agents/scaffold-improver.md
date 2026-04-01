@@ -4,6 +4,7 @@ description: Iteratively improves scaffold output by targeting the weakest scori
 tools:
   - Read
   - Write
+  - Edit
   - Grep
   - Glob
   - Bash

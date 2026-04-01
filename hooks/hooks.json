@@ -6,7 +6,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ ! -f CLAUDE.md ] && ([ -f package.json ] || [ -f pyproject.toml ] || [ -f go.mod ] || [ -f Cargo.toml ] || [ -f pom.xml ]); then echo 'Tip: This project has no AI dev setup. Run /scaffold to generate CLAUDE.md, agents, skills, rules, and MCP configs tailored to this codebase.' >&2; fi; exit 0"
+            "command": "if [ ! -f CLAUDE.md ] && ([ -f package.json ] || [ -f pyproject.toml ] || [ -f go.mod ] || [ -f Cargo.toml ] || [ -f pom.xml ]); then echo 'Tip: This project has no AI dev setup. Run /scaffold to generate CLAUDE.md, agents, skills, rules, and MCP configs tailored to this codebase. Or run /scaffold discover for a full machine-wide AI setup.' >&2; fi; exit 0"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f $HOME/.cortex/last-scaffold-score.txt ]; then SCORE=$(grep -o '[0-9]\\+' $HOME/.cortex/last-scaffold-score.txt 2>/dev/null | head -1); SCORE=${SCORE:-100}; if [ \"$SCORE\" -lt 70 ] 2>/dev/null; then echo 'Cortex: Last scaffold scored '$SCORE'/100. Run /scaffold optimize auto-improve for autonomous improvement.' >&2; fi; fi; exit 0"
           }
         ]
       }
