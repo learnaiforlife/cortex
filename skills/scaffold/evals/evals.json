@@ -85,6 +85,43 @@
         "AGENTS.md contains Agent Instructions section",
         "AGENTS.md does NOT contain Claude Code-specific references"
       ]
+    },
+    {
+      "id": "scaffold-monorepo",
+      "prompt": "/scaffold https://github.com/vercel/turborepo",
+      "expected_output": "Monorepo-aware scaffold with scoped agents",
+      "files": [],
+      "expectations": [
+        "Detects monorepo structure (turbo.json or pnpm-workspace.yaml)",
+        "Creates scoped agents per package boundary if distinct areas exist",
+        "CLAUDE.md documents the monorepo structure and package responsibilities",
+        "Rules include monorepo boundary guidance",
+        "Does NOT treat the monorepo as a single flat project"
+      ]
+    },
+    {
+      "id": "audit-duplicate-rules",
+      "prompt": "/scaffold audit",
+      "expected_output": "Audit detects duplicate rules across Claude Code and Cursor",
+      "files": [],
+      "expectations": [
+        "Identifies rules with identical content in .claude/rules/ and .cursor/rules/",
+        "Flags agents with overlapping responsibilities",
+        "Reports duplicate count in the summary",
+        "Suggests consolidation or removal for duplicates"
+      ]
+    },
+    {
+      "id": "quality-gate-catches-hallucination",
+      "prompt": "/scaffold test/fixtures/minimal",
+      "expected_output": "Quality reviewer catches any hallucinated or incorrect content",
+      "files": [],
+      "expectations": [
+        "Does NOT recommend MCP servers for services not detected in the project",
+        "Generated CLAUDE.md does not mention frameworks the project does not use",
+        "Skills reference only commands that actually exist in the project",
+        "No placeholder or TODO content appears in generated files"
+      ]
     }
   ]
 }
