@@ -1,0 +1,90 @@
+{
+  "skill_name": "scaffold",
+  "evals": [
+    {
+      "id": "scaffold-nextjs-fullstack",
+      "prompt": "/scaffold test/fixtures/nextjs-app",
+      "expected_output": "Generated scaffold files for a Next.js fullstack project",
+      "files": [],
+      "expectations": [
+        "Generates CLAUDE.md with Next.js-specific content (not generic template)",
+        "Recommends superpowers plugin for TDD and debugging",
+        "Recommends context7 plugin for Next.js and Prisma docs",
+        "Does NOT generate a custom debug skill (superpowers covers it)",
+        "Creates test-engineer agent for vitest + playwright",
+        "Generates .mcp.json with postgres MCP server",
+        "Generates .cursor/rules/project-context.mdc for Cursor",
+        "Generates AGENTS.md for Codex",
+        "Generates Prisma db-migrate custom skill (no official equivalent)",
+        "Safety rules are generated for both Claude Code and Cursor"
+      ]
+    },
+    {
+      "id": "scaffold-python-api",
+      "prompt": "/scaffold test/fixtures/python-api",
+      "expected_output": "Generated scaffold files for a Python FastAPI project",
+      "files": [],
+      "expectations": [
+        "Detects Python and FastAPI correctly",
+        "Generates CLAUDE.md mentioning FastAPI and pytest",
+        "Recommends superpowers plugin",
+        "Generates validate-api skill for OpenAPI spec",
+        "Recommends ruff linting hook if ruff detected",
+        "AGENTS.md contains Python-specific conventions"
+      ]
+    },
+    {
+      "id": "scaffold-minimal-no-overgenerate",
+      "prompt": "/scaffold test/fixtures/minimal",
+      "expected_output": "Minimal scaffold for a simple project",
+      "files": [],
+      "expectations": [
+        "Generates only CLAUDE.md and safety rules (not bloated)",
+        "Does NOT create unnecessary agents",
+        "Does NOT create skills for non-existent commands",
+        "Recommends superpowers as the only plugin",
+        "Total files generated is fewer than 8"
+      ]
+    },
+    {
+      "id": "scaffold-official-first",
+      "prompt": "/scaffold test/fixtures/nextjs-app",
+      "expected_output": "Official plugins recommended before custom skills",
+      "files": [],
+      "expectations": [
+        "Explicitly recommends superpowers plugin by name",
+        "Explicitly recommends hookify plugin by name",
+        "Does NOT generate a custom debugging skill",
+        "Does NOT generate a custom TDD skill",
+        "Does NOT generate a custom code-review skill",
+        "Custom skills are ONLY for project-specific workflows"
+      ]
+    },
+    {
+      "id": "audit-stale-setup",
+      "prompt": "/scaffold audit",
+      "expected_output": "Audit report identifying stale or broken setup files",
+      "files": [],
+      "expectations": [
+        "Scans .claude/ directory for existing files",
+        "Checks skills reference actual commands from package.json",
+        "Identifies any MCP servers for services not in project",
+        "Reports findings categorized as Critical, Warning, or Info",
+        "Offers to fix issues found"
+      ]
+    },
+    {
+      "id": "codex-output-format",
+      "prompt": "/scaffold test/fixtures/nextjs-app",
+      "expected_output": "AGENTS.md generated in correct Codex format",
+      "files": [],
+      "expectations": [
+        "Generates AGENTS.md at project root",
+        "AGENTS.md contains Development Commands section with actual commands",
+        "AGENTS.md contains Architecture section",
+        "AGENTS.md contains Agent Instructions section",
+        "AGENTS.md does NOT contain Claude Code-specific references"
+      ]
+    }
+  ]
+}
