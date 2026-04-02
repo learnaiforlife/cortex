@@ -271,6 +271,70 @@
       "assertions": [
         { "type": "output_contains", "pattern": "user.level|shared|cross.project|dedup" }
       ]
+    },
+    {
+      "id": "interactive-subagent-suggestions",
+      "prompt": "/scaffold test/fixtures/nextjs-app --all",
+      "expected_output": "Detects test framework, build tool. Generates model-routed subagent files with correct model in frontmatter.",
+      "files": [],
+      "expectations": [
+        "Detects Jest (or test framework) from package.json",
+        "Detects Next.js build tool",
+        "Generates test-runner subagent with model: haiku",
+        "Generates code-reviewer subagent with model: sonnet if triggered",
+        "Each generated subagent has correct model in YAML frontmatter",
+        "No unfilled {{PLACEHOLDER}} values in generated subagent files"
+      ],
+      "assertions": [
+        { "type": "file_exists", "path": ".claude/agents/test-runner.md" },
+        { "type": "frontmatter_field", "path": ".claude/agents/test-runner.md", "field": "model", "expected": "haiku" },
+        { "type": "no_placeholders" }
+      ]
+    },
+    {
+      "id": "soft-skill-suggestions",
+      "prompt": "/scaffold test/fixtures/nextjs-app --all",
+      "expected_output": "Suggests and generates avoid-ai-slop soft skill for docs-heavy project.",
+      "files": [],
+      "expectations": [
+        "Suggests avoid-ai-slop skill",
+        "Generated skill file exists at .claude/skills/avoid-ai-slop/SKILL.md",
+        "No unfilled placeholder values in generated skill files"
+      ],
+      "assertions": [
+        { "type": "file_exists", "path": ".claude/skills/avoid-ai-slop/SKILL.md" },
+        { "type": "no_placeholders" }
+      ]
+    },
+    {
+      "id": "integration-detection",
+      "prompt": "/scaffold test/fixtures/nextjs-app --all",
+      "expected_output": "detect-opportunities.sh runs and produces valid JSON with required fields.",
+      "files": [],
+      "expectations": [
+        "detect-opportunities.sh produces valid JSON",
+        "JSON contains subagentSignals field",
+        "JSON contains integrationScores field",
+        "JSON contains softSkillSignals field"
+      ],
+      "assertions": [
+        { "type": "script_output_valid_json", "script": "detect-opportunities.sh", "args": "test/fixtures/nextjs-app" }
+      ]
+    },
+    {
+      "id": "minimal-no-subagents",
+      "prompt": "/scaffold test/fixtures/minimal --all",
+      "expected_output": "Minimal project should not get complex subagent suggestions. No architecture-advisor generated.",
+      "files": [],
+      "expectations": [
+        "Minimal project produces fewer than 10 total files",
+        "No architecture-advisor subagent generated (project too small)",
+        "No integration subagents generated for minimal project"
+      ],
+      "assertions": [
+        { "type": "max_file_count", "base_dir": ".", "max_files": 10 },
+        { "type": "file_not_exists", "path": ".claude/agents/architecture-advisor.md" }
+      ]
     }
   ]
 }

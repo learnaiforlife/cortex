@@ -191,6 +191,63 @@ run_assertion() {
       fi
       ;;
 
+    frontmatter_field)
+      local path field expected
+      path=$(echo "$json" | python3 -c "import sys,json; print(json.load(sys.stdin)['path'])")
+      field=$(echo "$json" | python3 -c "import sys,json; print(json.load(sys.stdin)['field'])")
+      expected=$(echo "$json" | python3 -c "import sys,json; print(json.load(sys.stdin)['expected'])")
+      if [ ! -f "$REPO_DIR/$path" ]; then
+        echo "$path missing"; return 1
+      fi
+      # Extract YAML frontmatter field value
+      local actual
+      actual=$(sed -n '/^---$/,/^---$/p' "$REPO_DIR/$path" | grep "^${field}:" | head -1 | sed "s/^${field}:[[:space:]]*//" | tr -d '"' | tr -d "'" | tr -d ' ')
+      if [ "$actual" = "$expected" ]; then
+        echo "$path frontmatter $field=$actual (matches $expected)"; return 0
+      else
+        echo "$path frontmatter $field=$actual (expected $expected)"; return 1
+      fi
+      ;;
+
+    script_output_valid_json)
+      local script args_val
+      script=$(echo "$json" | python3 -c "import sys,json; print(json.load(sys.stdin)['script'])")
+      args_val=$(echo "$json" | python3 -c "import sys,json; print(json.load(sys.stdin).get('args', ''))")
+      local script_path="$SCRIPT_DIR/$script"
+      if [ ! -f "$script_path" ]; then
+        echo "$script not found at $script_path"; return 1
+      fi
+      local output
+      output=$(bash "$script_path" "$REPO_DIR/$args_val" 2>/dev/null)
+      if echo "$output" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
+        echo "$script produces valid JSON"; return 0
+      else
+        echo "$script output is not valid JSON"; return 1
+      fi
+      ;;
+
+    no_placeholders)
+      local hits=0
+      if [ -d "$REPO_DIR/.claude" ]; then
+        hits=$(grep -rlE '\{\{[A-Z_]+\}\}' "$REPO_DIR/.claude" 2>/dev/null | wc -l | tr -d ' ')
+      fi
+      if [ "$hits" -eq 0 ]; then
+        echo "no unfilled {{PLACEHOLDER}} values found"; return 0
+      else
+        echo "$hits files have unfilled {{PLACEHOLDER}} values"; return 1
+      fi
+      ;;
+
+    file_not_exists)
+      local path
+      path=$(echo "$json" | python3 -c "import sys,json; print(json.load(sys.stdin)['path'])")
+      if [ ! -f "$REPO_DIR/$path" ]; then
+        echo "$path correctly absent"; return 0
+      else
+        echo "$path unexpectedly exists"; return 1
+      fi
+      ;;
+
     output_contains)
       echo "output assertion (requires live run, skipped)"; return 2
       ;;

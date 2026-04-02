@@ -101,6 +101,16 @@ For minimal projects, the quality score thresholds are different:
 
 A total score of 60+ is acceptable for minimal projects (vs 70+ for normal projects).
 
+## Interactive Suggestions Override
+
+For minimal projects (fewer than 10 files, no framework detected), **suppress subagent and integration suggestions entirely**. The opportunity-detector may still detect signals (e.g., a git repo with commits triggers commit-assistant), but the minimal variant overrides this:
+
+- **Subagents**: Do NOT suggest any subagents. The project is too small to benefit from automated test runners, linters, or code reviewers. If the `--all` flag is set, only generate commit-assistant at most.
+- **Integrations**: Do NOT suggest any integration subagents. Minimal projects don't need Jira, Confluence, or Slack integration.
+- **Soft Skills**: ONLY suggest `think-out-loud` (universal, low overhead). Skip avoid-ai-slop (no docs to protect), devils-advocate (project too small), and grill-me (no complex domain).
+
+If Step 2.5 (Opportunity Detection) runs, filter the SUGGESTION_MANIFEST to remove all subagent and integration suggestions before presenting to the user. If `--all` flag is set, the filtered manifest should contain at most 1 subagent (commit-assistant) and 1 skill (think-out-loud).
+
 ## Plugins
 
 Recommend **only** the `superpowers` plugin. Do not recommend context7 (no frameworks to look up), frontend-design (no frontend), or code-review (likely a solo project).

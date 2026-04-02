@@ -32,9 +32,16 @@ Variant dispatch happens BEFORE mode routing. Variant files may override or exte
 
 ---
 
+## Flag Parsing
+
+Before mode routing, extract flags from `$ARGUMENTS`:
+- `--all` or `--yes`: Set INTERACTIVE_MODE=false, generate everything detected
+- `--minimal`: Set INTERACTIVE_MODE=false, generate only CLAUDE.md + safety rules (use minimal variant behavior)
+- Strip flags from `$ARGUMENTS` before passing to mode routing
+
 ## Mode Routing
 
-Determine the mode from `$ARGUMENTS`:
+Determine the mode from `$ARGUMENTS` (after flag stripping):
 
 - If `$ARGUMENTS` starts with **"discover"** --> jump to [Discover Mode](#discover-mode)
 - If `$ARGUMENTS` is exactly **"audit"** --> jump to [Audit Mode](#audit-mode)
@@ -80,6 +87,78 @@ bash "${CLAUDE_SKILL_DIR}/scripts/analyze.sh" "$REPO_DIR" 2>/dev/null || echo "{
 
 Store the output as PROJECT_PROFILE. Even an empty `{}` is fine -- the subagents handle the full analysis.
 
+### Step 2.5: Opportunity Detection
+
+If `$ARGUMENTS` contains `--minimal`, skip Steps 2.5 and 2.7 entirely — generate only CLAUDE.md + safety rules (minimal variant behavior).
+
+Dispatch the **opportunity-detector** subagent to analyze the repo and environment for suggestions:
+
+- Prompt: "Run the opportunity detection script at `{CLAUDE_SKILL_DIR}/scripts/detect-opportunities.sh` against `{REPO_DIR}`. Then read the reference catalogs at `{CLAUDE_SKILL_DIR}/references/subagent-templates-catalog.md`, `{CLAUDE_SKILL_DIR}/references/soft-skills-catalog.md`, and `{CLAUDE_SKILL_DIR}/references/integration-subagents-catalog.md`. Produce a SuggestionManifest JSON."
+- IMPORTANT: Resolve `${CLAUDE_SKILL_DIR}` to an absolute path before passing to the subagent.
+
+Store the result as SUGGESTION_MANIFEST.
+
+If `$ARGUMENTS` contains `--all` or `--yes`, skip Step 2.7 and use the full manifest as FILTERED_MANIFEST.
+
+### Step 2.7: Interactive Selection
+
+Present the suggestions to the user in up to 3 sequential prompts using AskUserQuestion. Skip any category with zero suggestions.
+
+**Prompt 1: Subagents** (if SUGGESTION_MANIFEST.subagents is non-empty)
+```
+📦 SUBAGENTS — I recommend these for your project:
+
+  ⚡ FAST (Haiku — cheap, mechanical tasks):
+  [N] {id} — {description}
+  ...
+
+  🧠 SMART (Sonnet — creative, judgment-heavy):
+  [N] {id} — {description}
+  ...
+
+  🏗️ DEEP (Opus — architectural, complex reasoning):
+  [N] {id} — {description}
+  ...
+
+Which subagents? (e.g., "1,2,5,6", "all", "none", "fast only")
+```
+
+**Prompt 2: Skills** (if SUGGESTION_MANIFEST.skills has entries)
+```
+🎯 SKILLS — Recommended for this project:
+
+  📋 Official Plugins:
+  [N] {id} — {description} {priority_badge}
+  ...
+
+  💡 Productivity Skills:
+  [N] {id} — {description}
+  ...
+
+Which skills? (e.g., "1,2,3,4", "all", "none")
+```
+
+**Prompt 3: Integrations** (if SUGGESTION_MANIFEST.integrations is non-empty)
+```
+🔌 INTEGRATIONS — Detected in your environment:
+
+  [N] {name} — {description}
+      (detected: {signals_found})
+  ...
+
+Which integrations? (e.g., "1,2", "all", "none")
+```
+
+**Parse responses** using these rules:
+- `"all"` → select everything in that category
+- `"none"` → skip entire category
+- `"fast only"` or `"haiku only"` → select only Haiku-tier subagents
+- `"smart only"` or `"sonnet only"` → select only Sonnet-tier subagents
+- Comma-separated numbers (`"1,2,5"`) → select specific items
+- Single number (`"3"`) → select that item
+
+Build FILTERED_MANIFEST from the user's selections. This is passed to downstream steps.
+
 ### Step 3: Dispatch Parallel Subagents
 
 Launch these two subagents **in parallel** using the Agent tool:
@@ -115,6 +194,8 @@ If any exist:
 
 Using the combined output from both subagents and your own reading, generate files for all three tools. Read the format references to ensure compliance.
 
+**Filtered Generation Gate**: Only generate artifacts that appear in FILTERED_MANIFEST (built in Step 2.7 or from --all flag). If a subagent was not selected, do not generate its `.claude/agents/` file. If an integration was not selected, do not generate its MCP config or subagent file. If no FILTERED_MANIFEST exists (Steps 2.5/2.7 were skipped or no suggestions found), generate the standard scaffold output.
+
 #### 5A: Claude Code Files
 
 Read `${CLAUDE_SKILL_DIR}/references/claude-code-formats.md` for exact format specs.
@@ -149,6 +230,34 @@ Read `${CLAUDE_SKILL_DIR}/references/claude-code-formats.md` for exact format sp
 - Only include servers for services the project actually uses.
 - Use configurations from the skill-recommender output.
 - Format: `{ "mcpServers": { "name": { "command": "...", "args": [...], "env": {...} } } }`
+
+**7. Template-Based Subagent Generation** (if FILTERED_MANIFEST has subagents)
+
+For each subagent in FILTERED_MANIFEST.subagents:
+1. Read the template from `${CLAUDE_SKILL_DIR}/templates/subagents/{subagent.id}.md`
+2. Replace `{{PLACEHOLDERS}}` with actual project values from repo-analyzer output:
+   - `{{TEST_FRAMEWORK}}` → detected test framework (jest, pytest, etc.)
+   - `{{TEST_COMMAND}}` → actual test command from package.json scripts or Makefile
+   - `{{LINT_COMMAND}}` → actual lint command
+   - `{{BUILD_COMMAND}}` → actual build command
+   - `{{PROJECT_NAME}}` → repo name
+   - `{{COMMIT_CONVENTION}}` → conventional commits or project convention
+3. Write the filled template to `.claude/agents/{subagent.id}.md`
+
+**8. Soft Skill Generation** (if FILTERED_MANIFEST has productivity skills)
+
+For each skill in FILTERED_MANIFEST.skills.productivity:
+1. Read the template from `${CLAUDE_SKILL_DIR}/templates/skills/{skill.id}.md`
+2. Copy to `.claude/skills/{skill.id}/SKILL.md` (no parameterization needed — these are universal)
+
+**9. Integration Subagent Generation** (if FILTERED_MANIFEST has integrations)
+
+Dispatch the **integration-subagent-gen** subagent with the selected integrations, template directory path, and project values. The subagent:
+1. Reads each integration template from `${CLAUDE_SKILL_DIR}/templates/subagents/{integration.id}.md`
+2. Fills `{{PLACEHOLDERS}}` with project-specific values
+3. Writes filled templates to `.claude/agents/{integration.id}.md`
+4. Generates MCP config entries in `.mcp.json` (using `${ENV_VAR}` syntax for credentials)
+5. Returns setup instructions for the summary
 
 #### 5B: Cursor Files
 
@@ -247,10 +356,18 @@ After all files are written, print a clear summary:
 ```
 ## Scaffold Complete
 
+### What Was Detected
+[List all opportunities found by the opportunity-detector, even if not selected]
+
 ### Files Generated
-- [path] -- [what it contains]
+- [path] -- [what it contains] [model tier badge if subagent]
 - [path] -- [what it contains]
 - ...
+
+### Model Cost Routing
+⚡ N Haiku subagents — ~$0.001/run each (mechanical tasks)
+🧠 N Sonnet subagents — ~$0.01/run each (creative tasks)
+🏗️ N Opus subagents — ~$0.05/run each (architectural tasks)
 
 ### Official Plugins Recommended
 - `claude plugins install [name]` -- [why]
@@ -259,7 +376,16 @@ After all files are written, print a clear summary:
 ### MCP Servers Configured
 - [server name] -- [what it provides]
 - ...
-  Note: Set these environment variables: [list any env vars needed]
+
+### Environment Variables Needed
+🔑 [List required env vars for integrations with setup instructions]
+   JIRA_URL=https://your-company.atlassian.net
+   JIRA_API_TOKEN=<get from https://id.atlassian.net/manage-profile/security/api-tokens>
+
+### Selection Stats
+Subagents: X/Y selected (Z%) — skipped: [list]
+Skills: X/Y selected (Z%) — skipped: [list]
+Integrations: X/Y selected (Z%) — skipped: [list]
 
 ### Manual TODOs
 - [ ] [anything the user needs to do manually, e.g., set API keys]
@@ -297,6 +423,14 @@ Before logging, collect these metrics from the scaffold run:
 # Log the run to ~/.cortex/scaffold-results.tsv with per-subagent metrics
 bash "${CLAUDE_SKILL_DIR}/scripts/log-result.sh" "$REPO_DIR" "success" "Scaffolded [project-name]" \
   "" "$QR_VERDICT" "$QR_SCORE" "$IMPROVER_RAN" "$IMPROVER_HELPED" "$SUBAGENT_TIMEOUTS"
+```
+
+Additionally, log selection rates for autoresearch training data:
+```
+SUBAGENTS_SUGGESTED  SUBAGENTS_SELECTED  SKILLS_SUGGESTED  SKILLS_SELECTED  INTEGRATIONS_SUGGESTED  INTEGRATIONS_SELECTED
+```
+
+This data feeds the autoresearch loop — if users consistently reject certain suggestions, the opportunity-detector's heuristics need tuning.
 ```
 
 If the scaffold had issues (quality-reviewer required fixes), use status `partial` instead of `success`. If any step crashed, use `crash`.

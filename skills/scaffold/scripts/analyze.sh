@@ -64,6 +64,51 @@ fi
 echo "  ],"
 
 # Check existing AI setup
+echo "  \"integrationSignals\": {"
+# Detect integration-related env vars and tools
+JIRA_DETECTED="false"
+[ -n "${JIRA_API_TOKEN:-}" ] || [ -n "${JIRA_URL:-}" ] && JIRA_DETECTED="true"
+CONFLUENCE_DETECTED="false"
+[ -n "${CONFLUENCE_URL:-}" ] || [ -n "${CONFLUENCE_TOKEN:-}" ] && CONFLUENCE_DETECTED="true"
+SLACK_DETECTED="false"
+[ -n "${SLACK_BOT_TOKEN:-}" ] && SLACK_DETECTED="true"
+if [ -f "$REPO_DIR/package.json" ]; then
+  grep -qE '@slack/' "$REPO_DIR/package.json" 2>/dev/null && SLACK_DETECTED="true"
+fi
+LINEAR_DETECTED="false"
+[ -n "${LINEAR_API_KEY:-}" ] && LINEAR_DETECTED="true"
+NOTION_DETECTED="false"
+[ -n "${NOTION_API_KEY:-}" ] || [ -n "${NOTION_TOKEN:-}" ] && NOTION_DETECTED="true"
+SENTRY_DETECTED="false"
+[ -n "${SENTRY_DSN:-}" ] && SENTRY_DETECTED="true"
+if [ -f "$REPO_DIR/package.json" ]; then
+  grep -qE '@sentry/' "$REPO_DIR/package.json" 2>/dev/null && SENTRY_DETECTED="true"
+fi
+DATADOG_DETECTED="false"
+[ -n "${DD_API_KEY:-}" ] && DATADOG_DETECTED="true"
+if [ -f "$REPO_DIR/package.json" ]; then
+  grep -qE 'dd-trace|datadog' "$REPO_DIR/package.json" 2>/dev/null && DATADOG_DETECTED="true"
+fi
+echo "    \"jira\": $JIRA_DETECTED,"
+echo "    \"confluence\": $CONFLUENCE_DETECTED,"
+echo "    \"slack\": $SLACK_DETECTED,"
+echo "    \"linear\": $LINEAR_DETECTED,"
+echo "    \"notion\": $NOTION_DETECTED,"
+echo "    \"sentry\": $SENTRY_DETECTED,"
+echo "    \"datadog\": $DATADOG_DETECTED"
+echo "  },"
+
+echo "  \"cliTools\": ["
+CLI_FIRST=true
+for cmd in gh glab jira linear docker kubectl terraform; do
+  if command -v "$cmd" &>/dev/null; then
+    [ "$CLI_FIRST" = true ] && CLI_FIRST=false || echo ","
+    printf "    \"%s\"" "$cmd"
+  fi
+done
+echo ""
+echo "  ],"
+
 echo "  \"existingSetup\": {"
 CLAUDE_MD="false"; [ -f "$REPO_DIR/CLAUDE.md" ] && CLAUDE_MD="true"
 AGENTS_MD="false"; [ -f "$REPO_DIR/AGENTS.md" ] && AGENTS_MD="true"

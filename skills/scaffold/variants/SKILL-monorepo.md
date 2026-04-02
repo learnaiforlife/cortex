@@ -359,6 +359,32 @@ In addition to the standard quality checks from main SKILL.md Step 6, verify:
 
 ---
 
+## Monorepo-Specific Subagent Suggestions
+
+When the opportunity-detector runs for a monorepo (Step 2.5), enhance the SUGGESTION_MANIFEST with monorepo-specific subagents:
+
+### Per-Package Test Runner
+If the monorepo has multiple app packages with test frameworks, suggest a **per-package test runner** subagent variant. Instead of a single test-runner, suggest:
+- `test-runner` (Haiku) — but configure it to accept a `--filter` or `--scope` argument to target specific packages
+- The template should use the monorepo tool's filter syntax (e.g., `turbo test --filter={{PACKAGE_NAME}}` or `pnpm --filter {{PACKAGE_NAME}} test`)
+
+### Cross-Package Dependency Checker
+For monorepos with >3 packages, suggest an additional subagent:
+- `dependency-checker` (Haiku) — Validates that inter-package dependencies are consistent, detects circular dependencies, and checks for version mismatches across workspace packages
+- Detection signal: monorepo with >3 packages in the workspace config
+- This subagent is monorepo-specific and should NOT be suggested for non-monorepo projects
+
+### Integration Suggestions
+Monorepos are more likely to have integration needs (larger teams, more process). Boost the confidence score for these integrations by +10 when in monorepo mode:
+- Jira (larger teams use issue tracking)
+- Slack (larger teams use notifications)
+- GitHub enhanced PR writer (monorepo PRs are more complex)
+
+### Soft Skills
+Monorepos are always `isMediumPlus`, so always suggest `devils-advocate` in addition to the standard soft skill suggestions.
+
+---
+
 ## Steps 7-9: Same as Main SKILL.md
 
 Refer to the main `SKILL.md` for:
