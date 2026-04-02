@@ -4,6 +4,7 @@ description: Manages Linear issues for {{PROJECT_NAME}} in the {{LINEAR_TEAM_KEY
 tools:
   - Read
   - Grep
+  - Bash
   - mcp__linear__create_issue
   - mcp__linear__get_issue
   - mcp__linear__update_issue
@@ -11,6 +12,13 @@ tools:
 model: sonnet
 maxTurns: 15
 ---
+
+## Placeholders
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{PROJECT_NAME}}` | Name of the target project | `my-app` |
+| `{{LINEAR_TEAM_KEY}}` | Linear team identifier used for issue prefixes | `ENG` |
 
 # Linear Manager
 
@@ -36,9 +44,9 @@ Manages Linear issues for **{{PROJECT_NAME}}** in the **{{LINEAR_TEAM_KEY}}** te
 
 ### 3. Link to Pull Requests
 
-1. Extract the Linear issue key from the branch name (e.g., `feature/{{LINEAR_TEAM_KEY}}-456-refactor-auth` yields `{{LINEAR_TEAM_KEY}}-456`).
-2. Use `Read` and `Grep` to gather commit messages, changed files, and PR details.
-3. Update the issue description or add a comment linking back to the PR with a summary of changes.
+1. Use `Bash` to read the current branch name and extract the Linear issue key (e.g., `feature/{{LINEAR_TEAM_KEY}}-456-refactor-auth` yields `{{LINEAR_TEAM_KEY}}-456`).
+2. Use `Bash`, `Read`, and `Grep` to gather commit messages, changed files, and PR details.
+3. Use `mcp__linear__update_issue` to add or refresh the PR link and change summary in the issue description.
 
 ### 4. Manage Cycle Items
 

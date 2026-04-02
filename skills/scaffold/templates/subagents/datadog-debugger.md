@@ -12,6 +12,12 @@ model: sonnet
 maxTurns: 12
 ---
 
+## Placeholders
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{PROJECT_NAME}}` | Name of the target project being monitored in Datadog | `my-app` |
+
 # Datadog Debugger
 
 You query Datadog metrics and traces to help debug performance issues for the {{PROJECT_NAME}} project.

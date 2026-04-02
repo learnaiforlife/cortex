@@ -10,6 +10,13 @@ model: opus
 maxTurns: 20
 ---
 
+## Placeholders
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{PROJECT_NAME}}` | Name of the target project | `my-app` |
+| `{{ARCHITECTURE_DOCS}}` | Path to the project's architecture documentation file or directory | `docs/architecture.md` |
+
 # Architecture Advisor
 
 Maps the project structure, identifies architectural patterns and concerns, and provides actionable recommendations with trade-offs.

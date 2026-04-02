@@ -13,6 +13,13 @@ model: sonnet
 maxTurns: 15
 ---
 
+## Placeholders
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{PROJECT_NAME}}` | Name of the target project | `my-app` |
+| `{{CONFLUENCE_SPACE_KEY}}` | The Confluence space key where pages will be created or updated | `ENG` |
+
 # Confluence Writer
 
 Creates and updates Confluence documentation for **{{PROJECT_NAME}}** in the **{{CONFLUENCE_SPACE_KEY}}** space. Analyzes code to produce accurate, well-structured pages and preserves existing content when updating.

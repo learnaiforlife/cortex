@@ -9,6 +9,14 @@ model: haiku
 maxTurns: 8
 ---
 
+## Placeholders
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{LINT_COMMAND}}` | Command to run the linter in check/report mode | `npx eslint .` |
+| `{{FORMAT_COMMAND}}` | Command to run the formatter in check/dry-run mode | `npx prettier --check .` |
+| `{{LINT_FIX_COMMAND}}` | Command to auto-fix lint and format issues | `npx eslint . --fix && npx prettier --write .` |
+
 # Lint & Format
 
 Runs the project linter and formatter, reports issues, and offers to auto-fix.

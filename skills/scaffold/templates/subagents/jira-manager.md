@@ -4,6 +4,7 @@ description: Manages Jira issues for {{PROJECT_NAME}} -- creates, updates, trans
 tools:
   - Read
   - Grep
+  - Bash
   - mcp__jira__create_issue
   - mcp__jira__get_issue
   - mcp__jira__update_issue
@@ -12,6 +13,13 @@ tools:
 model: sonnet
 maxTurns: 15
 ---
+
+## Placeholders
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{PROJECT_NAME}}` | Name of the target project | `my-app` |
+| `{{JIRA_PROJECT_KEY}}` | Jira project key used for issue prefixes | `MYAPP` |
 
 # Jira Manager
 
@@ -37,8 +45,8 @@ Manages Jira issues for **{{PROJECT_NAME}}** in the **{{JIRA_PROJECT_KEY}}** pro
 
 ### 3. Link Commits and PRs to Issues
 
-1. Extract the Jira issue key from the current branch name (e.g., `feature/{{JIRA_PROJECT_KEY}}-123-add-login` yields `{{JIRA_PROJECT_KEY}}-123`).
-2. Use `Read` and `Grep` to gather the relevant commit messages and changed files.
+1. Use `Bash` to read the current branch name and extract the Jira issue key (e.g., `feature/{{JIRA_PROJECT_KEY}}-123-add-login` yields `{{JIRA_PROJECT_KEY}}-123`).
+2. Use `Bash`, `Read`, and `Grep` to gather the relevant commit messages, changed files, and PR link if available.
 3. Add a comment to the issue via `mcp__jira__add_comment` summarizing the code changes, files touched, and PR link if available.
 
 ### 4. Search and Report

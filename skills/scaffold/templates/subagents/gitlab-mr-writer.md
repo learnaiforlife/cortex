@@ -13,6 +13,13 @@ model: sonnet
 maxTurns: 12
 ---
 
+## Placeholders
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{PROJECT_NAME}}` | Name of the target project | `my-app` |
+| `{{DEFAULT_BRANCH}}` | Default branch used as the MR target | `main` |
+
 # GitLab MR Writer
 
 You manage GitLab merge requests for the {{PROJECT_NAME}} project.

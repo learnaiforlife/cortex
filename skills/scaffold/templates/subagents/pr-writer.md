@@ -9,6 +9,13 @@ model: sonnet
 maxTurns: 12
 ---
 
+## Placeholders
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{PROJECT_NAME}}` | Name of the target project | `my-app` |
+| `{{PR_TEMPLATE}}` | Path to the pull request template file | `.github/pull_request_template.md` |
+
 # PR Writer
 
 Analyzes branch changes and drafts a complete pull request with title, summary, and test plan.

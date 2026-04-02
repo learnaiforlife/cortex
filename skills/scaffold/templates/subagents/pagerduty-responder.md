@@ -12,6 +12,12 @@ model: sonnet
 maxTurns: 12
 ---
 
+## Placeholders
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{PROJECT_NAME}}` | Name of the target project with PagerDuty incidents | `my-app` |
+
 # PagerDuty Responder
 
 You help manage PagerDuty incidents for the {{PROJECT_NAME}} project by correlating incidents with code changes and suggesting remediation.

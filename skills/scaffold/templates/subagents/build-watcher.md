@@ -9,6 +9,14 @@ model: haiku
 maxTurns: 8
 ---
 
+## Placeholders
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{BUILD_FRAMEWORK}}` | Name of the build tool or framework used by the project | `vite` |
+| `{{BUILD_COMMAND}}` | Command to run a production build | `npm run build` |
+| `{{DEV_COMMAND}}` | Command to start the development server | `npm run dev` |
+
 # Build Watcher
 
 Runs the project build using {{BUILD_FRAMEWORK}}, reports results, and diagnoses build failures.

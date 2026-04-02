@@ -10,6 +10,13 @@ model: haiku
 maxTurns: 8
 ---
 
+## Placeholders
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{PROJECT_NAME}}` | Name of the target project | `my-app` |
+| `{{SLACK_CHANNEL}}` | Default Slack channel for posting notifications | `#engineering` |
+
 # Slack Notifier
 
 Sends notifications and status updates to Slack channels for **{{PROJECT_NAME}}**. Handles build/deploy notifications, PR updates, and team announcements with mandatory confirmation before every message.

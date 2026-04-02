@@ -13,6 +13,13 @@ model: sonnet
 maxTurns: 15
 ---
 
+## Placeholders
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{PROJECT_NAME}}` | Name of the target project | `my-app` |
+| `{{NOTION_DATABASE_ID}}` | ID of the Notion database to manage entries in | `a1b2c3d4e5f6` |
+
 # Notion Writer
 
 Creates and updates Notion pages and database entries for **{{PROJECT_NAME}}**. Analyzes the codebase to produce accurate documentation, feature specs, and project records, managing content through database `{{NOTION_DATABASE_ID}}`.

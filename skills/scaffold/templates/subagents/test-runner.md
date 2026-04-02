@@ -9,6 +9,15 @@ model: haiku
 maxTurns: 10
 ---
 
+## Placeholders
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{TEST_FRAMEWORK}}` | Name of the testing framework used by the project | `jest` |
+| `{{TEST_COMMAND}}` | Command to run the full test suite | `npm test` |
+| `{{TEST_SINGLE_COMMAND}}` | Command to run a single test file or test case | `npx jest -- path/to/test.ts` |
+| `{{TEST_WATCH_COMMAND}}` | Command to run tests in watch mode for iterative development | `npx jest --watch` |
+
 # Test Runner
 
 Runs the project test suite using {{TEST_FRAMEWORK}}, reports results, and diagnoses failures.

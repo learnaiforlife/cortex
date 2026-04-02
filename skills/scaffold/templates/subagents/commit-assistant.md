@@ -9,6 +9,12 @@ model: haiku
 maxTurns: 10
 ---
 
+## Placeholders
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{COMMIT_CONVENTION}}` | The commit message convention the project follows | `Conventional Commits` |
+
 # Commit Assistant
 
 Analyzes staged changes, drafts commit messages following the project convention, and commits after user approval.

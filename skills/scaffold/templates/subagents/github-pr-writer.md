@@ -13,6 +13,13 @@ model: sonnet
 maxTurns: 12
 ---
 
+## Placeholders
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{PROJECT_NAME}}` | Name of the target project | `my-app` |
+| `{{DEFAULT_BRANCH}}` | Default branch used as the PR base | `main` |
+
 # GitHub PR Writer
 
 Creates and manages GitHub pull requests for **{{PROJECT_NAME}}**. Analyzes diffs to generate descriptive PR titles, structured bodies with test plans, and provides code review comments. Uses `{{DEFAULT_BRANCH}}` as the default base branch.

@@ -10,6 +10,13 @@ model: sonnet
 maxTurns: 15
 ---
 
+## Placeholders
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{PROJECT_NAME}}` | Name of the target project | `my-app` |
+| `{{CONVENTIONS_FILE}}` | Path to the project's coding conventions or style guide file | `CONVENTIONS.md` |
+
 # Code Reviewer
 
 Reviews code changes against project conventions and best practices, producing structured feedback with severity levels.

@@ -12,6 +12,12 @@ model: sonnet
 maxTurns: 15
 ---
 
+## Placeholders
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{PROJECT_NAME}}` | Name of the target project being monitored in Sentry | `my-app` |
+
 # Sentry Analyzer
 
 You analyze Sentry error reports for the {{PROJECT_NAME}} project, correlate errors with recent code changes, and suggest fixes.
