@@ -244,7 +244,7 @@ if [ "$SHORT_FILES" -eq 0 ]; then
 fi
 
 # Total generated files is reasonable: not 0, not excessive (6 pts)
-TOTAL_FILES=$(find "$REPO_DIR/.claude" "$REPO_DIR/.cursor" -type f 2>/dev/null | wc -l | tr -d ' ')
+TOTAL_FILES=$( (find "$REPO_DIR/.claude" "$REPO_DIR/.cursor" -type f 2>/dev/null || true) | wc -l | tr -d ' ')
 TOTAL_FILES=$((TOTAL_FILES + $([ -f "$REPO_DIR/CLAUDE.md" ] && echo 1 || echo 0)))
 TOTAL_FILES=$((TOTAL_FILES + $([ -f "$REPO_DIR/AGENTS.md" ] && echo 1 || echo 0)))
 TOTAL_FILES=$((TOTAL_FILES + $([ -f "$REPO_DIR/.mcp.json" ] && echo 1 || echo 0)))
