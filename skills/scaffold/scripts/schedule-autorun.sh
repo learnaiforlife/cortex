@@ -231,7 +231,12 @@ setup_linux() {
 0 3 1 * * /bin/bash ${MONTHLY_WRAPPER} >> ${LOG_DIR}/monthly-discover.log 2>> ${LOG_DIR}/monthly-discover.err # cortex-autorun"
 
   # Write back
-  echo "$NEW_CRON" | crontab - && echo "  Crontab updated successfully" || { echo "  ERROR: Failed to update crontab" >&2; return 1; }
+  if echo "$NEW_CRON" | crontab -; then
+    echo "  Crontab updated successfully"
+  else
+    echo "  ERROR: Failed to update crontab" >&2
+    return 1
+  fi
 
   echo ""
   echo "Crontab entries (tagged # cortex-autorun):"
