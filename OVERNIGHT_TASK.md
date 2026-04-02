@@ -202,28 +202,49 @@ Use --all flag. Save full report to /tmp/oss-test-5-calcom.md"
 
 For each: analyze the report, identify failures, fix in cortex codebase, commit.
 
-## Phase 7: Codex Independent Review
-Use Codex to review the entire cortex project for issues:
+## Phase 7: Multi-Agent Independent Review
+Use BOTH Cursor Agent AND Codex for independent review — two different AI systems catch different things.
 
+### Review 7A: Cursor Agent (deep code analysis)
+```bash
+cd /Users/lathesh/Documents/workspace/cortex
+cursor agent --print "
+You are doing a thorough code review of the Cortex project — a Claude Code plugin.
+
+Review ALL new files created in this session for:
+1. Bugs in shell scripts (syntax errors, missing quotes, edge cases in detect-opportunities.sh)
+2. YAML frontmatter validity in all new .md agent/skill files
+3. Unfilled {{PLACEHOLDER}} values anywhere in templates
+4. Incorrect model assignments (haiku should only be for mechanical tasks)
+5. MCP tool name format errors (must be mcp__service__tool)
+6. Security: hardcoded credentials, path traversal in file operations
+7. Logic errors in the interactive selection parsing in SKILL.md
+8. Missing --all/--minimal flag handling edge cases
+9. Integration catalog entries that reference non-existent MCP servers
+10. Inconsistencies between the plan (/tmp/cortex-feature-plan.md) and what was actually built
+
+For each issue: file, line number, severity (critical/high/medium), description, fix.
+Save findings to /tmp/cursor-review-findings.md
+Fix all critical and high severity issues.
+Commit: git commit -m 'fix: cursor review fixes'
+" 2>&1
+```
+
+### Review 7B: Codex (shell script + security focus)
 ```bash
 cd /Users/lathesh/Documents/workspace/cortex
 codex exec --full-auto "
-Review the entire cortex project for:
-1. Bugs in shell scripts (syntax errors, missing quotes, edge cases)
-2. Issues in Python files (type errors, missing error handling)
-3. Problems in subagent prompts (ambiguous instructions, missing edge cases)
-4. Inconsistencies between reference catalogs and templates
-5. Security issues (hardcoded credentials, path traversal, command injection)
-6. Missing error handling in detect-opportunities.sh
+Review the Cortex project focusing on:
+1. Shell script correctness (detect-opportunities.sh, analyze.sh, run-skill-evals.sh)
+2. Python correctness (claude-code-auto-research/run.py, measure.py)
+3. Command injection vulnerabilities in shell scripts
+4. Unquoted variables that could break with spaces in paths
+5. Missing error handling (what happens if git commands fail?)
+6. Template {{PLACEHOLDER}} values that don't get filled during generation
 
-For each issue found:
-- File and line number
-- Description of the issue
-- Suggested fix
-
-Save all findings to /tmp/codex-review-findings.md
-Fix all critical/high severity issues directly.
-Commit fixes with: git commit -m 'fix: [issue description]'
+Save findings to /tmp/codex-review-findings.md
+Fix all critical issues.
+Commit: git commit -m 'fix: codex review fixes'
 "
 ```
 
