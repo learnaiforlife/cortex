@@ -15,6 +15,11 @@ detect_test_framework() {
   [ -f "$REPO_DIR/jest.config.js" ] || [ -f "$REPO_DIR/jest.config.ts" ] && found="jest"
   [ -f "$REPO_DIR/vitest.config.ts" ] || [ -f "$REPO_DIR/vitest.config.js" ] && found="vitest"
   [ -f "$REPO_DIR/pytest.ini" ] || [ -f "$REPO_DIR/conftest.py" ] || [ -f "$REPO_DIR/setup.cfg" ] && found="pytest"
+  [ -z "$found" ] && [ -f "$REPO_DIR/tests/conftest.py" ] && found="pytest"
+  [ -z "$found" ] && [ -f "$REPO_DIR/test/conftest.py" ] && found="pytest"
+  if [ -z "$found" ] && [ -f "$REPO_DIR/pyproject.toml" ]; then
+    grep -qE '\[tool\.pytest' "$REPO_DIR/pyproject.toml" 2>/dev/null && found="pytest"
+  fi
   [ -f "$REPO_DIR/go.mod" ] && [ -z "$found" ] && found="go-test"
   [ -f "$REPO_DIR/Cargo.toml" ] && [ -z "$found" ] && found="cargo-test"
   if [ -f "$REPO_DIR/package.json" ]; then
@@ -28,6 +33,9 @@ detect_linter() {
   for f in .eslintrc.js .eslintrc.json eslint.config.js eslint.config.mjs biome.json ruff.toml .golangci.yml; do
     [ -f "$REPO_DIR/$f" ] && found="$f" && break
   done
+  if [ -z "$found" ] && [ -f "$REPO_DIR/pyproject.toml" ]; then
+    grep -qE '\[tool\.ruff' "$REPO_DIR/pyproject.toml" 2>/dev/null && found="pyproject-ruff"
+  fi
   echo "$found"
 }
 
@@ -141,6 +149,31 @@ detect_datadog() {
   echo "$score"
 }
 
+detect_github() {
+  local score=0
+  [ -n "${GITHUB_TOKEN:-}" ] && score=$((score + 40))
+  [ -d "$REPO_DIR/.github" ] && score=$((score + 30))
+  command -v gh &>/dev/null && gh auth status &>/dev/null && score=$((score + 30))
+  echo "$score"
+}
+
+detect_gitlab() {
+  local score=0
+  [ -n "${GITLAB_TOKEN:-}" ] && score=$((score + 40))
+  [ -f "$REPO_DIR/.gitlab-ci.yml" ] && score=$((score + 40))
+  command -v glab &>/dev/null && glab auth status &>/dev/null 2>&1 && score=$((score + 20))
+  echo "$score"
+}
+
+detect_pagerduty() {
+  local score=0
+  [ -n "${PAGERDUTY_TOKEN:-}" ] && score=$((score + 50))
+  if [ -f "$REPO_DIR/package.json" ]; then
+    grep -qE '@pagerduty/pdjs' "$REPO_DIR/package.json" 2>/dev/null && score=$((score + 30))
+  fi
+  echo "$score"
+}
+
 # --- Soft skill signals ---
 has_docs() {
   [ -f "$REPO_DIR/README.md" ] || [ -d "$REPO_DIR/docs" ]
@@ -175,6 +208,9 @@ LINEAR_SCORE=$(detect_linear)
 NOTION_SCORE=$(detect_notion)
 SENTRY_SCORE=$(detect_sentry)
 DATADOG_SCORE=$(detect_datadog)
+GITHUB_SCORE=$(detect_github)
+GITLAB_SCORE=$(detect_gitlab)
+PAGERDUTY_SCORE=$(detect_pagerduty)
 
 cat <<ENDJSON
 {
@@ -193,7 +229,10 @@ cat <<ENDJSON
     "linear": $LINEAR_SCORE,
     "notion": $NOTION_SCORE,
     "sentry": $SENTRY_SCORE,
-    "datadog": $DATADOG_SCORE
+    "datadog": $DATADOG_SCORE,
+    "github": $GITHUB_SCORE,
+    "gitlab": $GITLAB_SCORE,
+    "pagerduty": $PAGERDUTY_SCORE
   },
   "softSkillSignals": {
     "hasDocs": $(has_docs && echo "true" || echo "false"),
