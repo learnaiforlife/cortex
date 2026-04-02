@@ -154,6 +154,7 @@ Which integrations? (e.g., "1,2", "all", "none")
 - `"none"` → skip entire category
 - `"fast only"` or `"haiku only"` → select only Haiku-tier subagents
 - `"smart only"` or `"sonnet only"` → select only Sonnet-tier subagents
+- `"deep only"` or `"opus only"` → select only Opus-tier subagents
 - Comma-separated numbers (`"1,2,5"`) → select specific items
 - Single number (`"3"`) → select that item
 

@@ -20,22 +20,28 @@ All credential references use the format `${ENV_VAR}` which is resolved at runti
 
 ## Detection Score Formula
 
-Each integration uses a weighted signal detection score to determine recommendation strength:
+Each integration uses a weighted signal detection score to determine recommendation strength. The `detect-opportunities.sh` script implements the actual weights (which are tuned for real-world detection accuracy):
 
 ```
-Score = sum of matched signal weights (0-100 scale)
+Score = sum of matched signal weights (0-100+ scale)
 
-Signal weights:
-  Environment variable set:     +30 per matching env var (max 60)
-  CLI tool installed:           +20
-  Config file/directory exists: +15
-  Dependency in package.json:   +15
-  Git pattern match:            +10
-  Co-detection with related:    +10
+Signal weights (as implemented in detect-opportunities.sh):
+  Primary env variable:         +40-50 (strongest signal: user explicitly configured)
+  Secondary env variable:       +30-40
+  CLI tool installed:           +20-30
+  Config directory exists:      +20-30
+  Dependency in package.json:   +30
+  App installed (e.g., Slack):  +20
+  Git branch pattern match:     +20
+  Co-detection with related:    +15
 
 Thresholds:
   score >= 30: "suggested"    -- mention to user as available
-  score >= 60: "recommended"  -- include in generated config by default
+  score >= 60: "recommended"  -- high confidence, include by default
+
+Note: Individual integration functions in detect-opportunities.sh define per-signal
+weights tuned for that integration. The weights above are approximations — see the
+script for exact values per integration.
 ```
 
 ---
