@@ -40,7 +40,6 @@ fi
 run_assertion() {
   local type="$1"
   local json="$2"
-  local detail=""
 
   case "$type" in
     file_exists)
