@@ -2,6 +2,8 @@
 # Quick scan of existing AI setup files
 # Outputs a JSON summary of what exists
 
+set -euo pipefail
+
 REPO_DIR="${1:-.}"
 
 echo "{"

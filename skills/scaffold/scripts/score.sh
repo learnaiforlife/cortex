@@ -12,6 +12,8 @@
 # Usage: score.sh <repo-dir>
 # Output: JSON with total score and per-dimension breakdown
 
+set -euo pipefail
+
 REPO_DIR="${1:-.}"
 
 # Accumulators for each dimension (out of 25)

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Cortex — Install as Claude Code plugin
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_DIR="$HOME/.claude/skills/scaffold"

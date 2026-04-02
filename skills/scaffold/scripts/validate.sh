@@ -2,6 +2,8 @@
 # Validate generated scaffold files
 # Checks YAML frontmatter, file structure, and basic format compliance
 
+set -euo pipefail
+
 REPO_DIR="${1:-.}"
 ERRORS=0
 WARNINGS=0

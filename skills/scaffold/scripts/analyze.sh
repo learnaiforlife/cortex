@@ -3,6 +3,8 @@
 # Outputs a quick ProjectProfile JSON from file system analysis
 # No external dependencies required — pure shell
 
+set -euo pipefail
+
 REPO_DIR="${1:-.}"
 
 echo "{"
@@ -67,27 +69,27 @@ echo "  ],"
 echo "  \"integrationSignals\": {"
 # Detect integration-related env vars and tools
 JIRA_DETECTED="false"
-[ -n "${JIRA_API_TOKEN:-}" ] || [ -n "${JIRA_URL:-}" ] && JIRA_DETECTED="true"
+{ [ -n "${JIRA_API_TOKEN:-}" ] || [ -n "${JIRA_URL:-}" ]; } && JIRA_DETECTED="true" || true
 CONFLUENCE_DETECTED="false"
-[ -n "${CONFLUENCE_URL:-}" ] || [ -n "${CONFLUENCE_TOKEN:-}" ] && CONFLUENCE_DETECTED="true"
+{ [ -n "${CONFLUENCE_URL:-}" ] || [ -n "${CONFLUENCE_TOKEN:-}" ]; } && CONFLUENCE_DETECTED="true" || true
 SLACK_DETECTED="false"
-[ -n "${SLACK_BOT_TOKEN:-}" ] && SLACK_DETECTED="true"
+[ -n "${SLACK_BOT_TOKEN:-}" ] && SLACK_DETECTED="true" || true
 if [ -f "$REPO_DIR/package.json" ]; then
-  grep -qE '@slack/' "$REPO_DIR/package.json" 2>/dev/null && SLACK_DETECTED="true"
+  grep -qE '@slack/' "$REPO_DIR/package.json" 2>/dev/null && SLACK_DETECTED="true" || true
 fi
 LINEAR_DETECTED="false"
-[ -n "${LINEAR_API_KEY:-}" ] && LINEAR_DETECTED="true"
+[ -n "${LINEAR_API_KEY:-}" ] && LINEAR_DETECTED="true" || true
 NOTION_DETECTED="false"
-[ -n "${NOTION_API_KEY:-}" ] || [ -n "${NOTION_TOKEN:-}" ] && NOTION_DETECTED="true"
+{ [ -n "${NOTION_API_KEY:-}" ] || [ -n "${NOTION_TOKEN:-}" ]; } && NOTION_DETECTED="true" || true
 SENTRY_DETECTED="false"
-[ -n "${SENTRY_DSN:-}" ] && SENTRY_DETECTED="true"
+[ -n "${SENTRY_DSN:-}" ] && SENTRY_DETECTED="true" || true
 if [ -f "$REPO_DIR/package.json" ]; then
-  grep -qE '@sentry/' "$REPO_DIR/package.json" 2>/dev/null && SENTRY_DETECTED="true"
+  grep -qE '@sentry/' "$REPO_DIR/package.json" 2>/dev/null && SENTRY_DETECTED="true" || true
 fi
 DATADOG_DETECTED="false"
-[ -n "${DD_API_KEY:-}" ] && DATADOG_DETECTED="true"
+[ -n "${DD_API_KEY:-}" ] && DATADOG_DETECTED="true" || true
 if [ -f "$REPO_DIR/package.json" ]; then
-  grep -qE 'dd-trace|datadog' "$REPO_DIR/package.json" 2>/dev/null && DATADOG_DETECTED="true"
+  grep -qE 'dd-trace|datadog' "$REPO_DIR/package.json" 2>/dev/null && DATADOG_DETECTED="true" || true
 fi
 echo "    \"jira\": $JIRA_DETECTED,"
 echo "    \"confluence\": $CONFLUENCE_DETECTED,"
@@ -97,13 +99,13 @@ echo "    \"notion\": $NOTION_DETECTED,"
 echo "    \"sentry\": $SENTRY_DETECTED,"
 echo "    \"datadog\": $DATADOG_DETECTED,"
 GITHUB_DETECTED="false"
-[ -n "${GITHUB_TOKEN:-}" ] || [ -d "$REPO_DIR/.github" ] && GITHUB_DETECTED="true"
+{ [ -n "${GITHUB_TOKEN:-}" ] || [ -d "$REPO_DIR/.github" ]; } && GITHUB_DETECTED="true" || true
 GITLAB_DETECTED="false"
-[ -n "${GITLAB_TOKEN:-}" ] || [ -f "$REPO_DIR/.gitlab-ci.yml" ] && GITLAB_DETECTED="true"
+{ [ -n "${GITLAB_TOKEN:-}" ] || [ -f "$REPO_DIR/.gitlab-ci.yml" ]; } && GITLAB_DETECTED="true" || true
 PAGERDUTY_DETECTED="false"
-[ -n "${PAGERDUTY_TOKEN:-}" ] && PAGERDUTY_DETECTED="true"
+[ -n "${PAGERDUTY_TOKEN:-}" ] && PAGERDUTY_DETECTED="true" || true
 if [ -f "$REPO_DIR/package.json" ]; then
-  grep -qE '@pagerduty/' "$REPO_DIR/package.json" 2>/dev/null && PAGERDUTY_DETECTED="true"
+  grep -qE '@pagerduty/' "$REPO_DIR/package.json" 2>/dev/null && PAGERDUTY_DETECTED="true" || true
 fi
 echo "    \"github\": $GITHUB_DETECTED,"
 echo "    \"gitlab\": $GITLAB_DETECTED,"
@@ -122,11 +124,11 @@ echo ""
 echo "  ],"
 
 echo "  \"existingSetup\": {"
-CLAUDE_MD="false"; [ -f "$REPO_DIR/CLAUDE.md" ] && CLAUDE_MD="true"
-AGENTS_MD="false"; [ -f "$REPO_DIR/AGENTS.md" ] && AGENTS_MD="true"
-CLAUDE_DIR="false"; [ -d "$REPO_DIR/.claude" ] && CLAUDE_DIR="true"
-CURSOR_DIR="false"; [ -d "$REPO_DIR/.cursor" ] && CURSOR_DIR="true"
-MCP_JSON="false"; [ -f "$REPO_DIR/.mcp.json" ] && MCP_JSON="true"
+CLAUDE_MD="false"; [ -f "$REPO_DIR/CLAUDE.md" ] && CLAUDE_MD="true" || true
+AGENTS_MD="false"; [ -f "$REPO_DIR/AGENTS.md" ] && AGENTS_MD="true" || true
+CLAUDE_DIR="false"; [ -d "$REPO_DIR/.claude" ] && CLAUDE_DIR="true" || true
+CURSOR_DIR="false"; [ -d "$REPO_DIR/.cursor" ] && CURSOR_DIR="true" || true
+MCP_JSON="false"; [ -f "$REPO_DIR/.mcp.json" ] && MCP_JSON="true" || true
 echo "    \"CLAUDE.md\": $CLAUDE_MD,"
 echo "    \"AGENTS.md\": $AGENTS_MD,"
 echo "    \".claude/\": $CLAUDE_DIR,"
