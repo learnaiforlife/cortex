@@ -31,16 +31,16 @@ mkdir -p "$SKILL_DIR/variants"
 cp -r "$SCRIPT_DIR/skills/scaffold/"* "$SKILL_DIR/"
 chmod +x "$SKILL_DIR/scripts/"*.sh 2>/dev/null || true
 
-echo "  Agents:     $(ls "$SKILL_DIR/agents/"*.md 2>/dev/null | wc -l | tr -d ' ') agents"
-echo "  Scripts:    $(ls "$SKILL_DIR/scripts/"*.sh 2>/dev/null | wc -l | tr -d ' ') scripts"
-echo "  References: $(ls "$SKILL_DIR/references/"*.md 2>/dev/null | wc -l | tr -d ' ') reference docs"
-echo "  Variants:   $(ls "$SKILL_DIR/variants/"*.md 2>/dev/null | wc -l | tr -d ' ') skill variants"
+echo "  Agents:     $(find "$SKILL_DIR/agents" -maxdepth 1 -name "*.md" -type f 2>/dev/null | wc -l | tr -d ' ') agents"
+echo "  Scripts:    $(find "$SKILL_DIR/scripts" -maxdepth 1 -name "*.sh" -type f 2>/dev/null | wc -l | tr -d ' ') scripts"
+echo "  References: $(find "$SKILL_DIR/references" -maxdepth 1 -name "*.md" -type f 2>/dev/null | wc -l | tr -d ' ') reference docs"
+echo "  Variants:   $(find "$SKILL_DIR/variants" -maxdepth 1 -name "*.md" -type f 2>/dev/null | wc -l | tr -d ' ') skill variants"
 
 # Install commands (/scaffold, /scaffold-audit, /scaffold-optimize, /scaffold-discover)
 echo "Installing commands..."
 mkdir -p "$COMMANDS_DIR"
 cp "$SCRIPT_DIR/commands/"*.md "$COMMANDS_DIR/"
-echo "  Commands:   $(ls "$COMMANDS_DIR/"scaffold*.md 2>/dev/null | wc -l | tr -d ' ') commands"
+echo "  Commands:   $(find "$COMMANDS_DIR" -maxdepth 1 -name "scaffold*.md" -type f 2>/dev/null | wc -l | tr -d ' ') commands"
 
 # Create cortex data directory
 mkdir -p "$HOME/.cortex/logs"

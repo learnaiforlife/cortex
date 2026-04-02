@@ -18,15 +18,15 @@ else
 fi
 
 # Agents
-AGENT_COUNT=$(ls "$REPO_DIR"/.claude/agents/*.md 2>/dev/null | wc -l | tr -d ' ')
+AGENT_COUNT=$(find "$REPO_DIR/.claude/agents" -maxdepth 1 -name "*.md" -type f 2>/dev/null | wc -l | tr -d ' ')
 echo "    \"agents\": $AGENT_COUNT,"
 
 # Skills
-SKILL_COUNT=$(ls "$REPO_DIR"/.claude/skills/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ')
+SKILL_COUNT=$(find "$REPO_DIR/.claude/skills" -maxdepth 2 -name "SKILL.md" -type f 2>/dev/null | wc -l | tr -d ' ')
 echo "    \"skills\": $SKILL_COUNT,"
 
 # Rules
-RULE_COUNT=$(ls "$REPO_DIR"/.claude/rules/*.md 2>/dev/null | wc -l | tr -d ' ')
+RULE_COUNT=$(find "$REPO_DIR/.claude/rules" -maxdepth 1 -name "*.md" -type f 2>/dev/null | wc -l | tr -d ' ')
 echo "    \"rules\": $RULE_COUNT,"
 
 # Settings
@@ -45,7 +45,7 @@ fi
 echo "  },"
 
 echo "  \"cursor\": {"
-CURSOR_RULE_COUNT=$(ls "$REPO_DIR"/.cursor/rules/*.mdc 2>/dev/null | wc -l | tr -d ' ')
+CURSOR_RULE_COUNT=$(find "$REPO_DIR/.cursor/rules" -maxdepth 1 -name "*.mdc" -type f 2>/dev/null | wc -l | tr -d ' ')
 echo "    \"rules\": $CURSOR_RULE_COUNT,"
 if [ -f "$REPO_DIR/.cursor/mcp.json" ]; then
   echo "    \"mcp\": true"
