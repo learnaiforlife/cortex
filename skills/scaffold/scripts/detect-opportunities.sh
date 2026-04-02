@@ -44,8 +44,25 @@ detect_build_tool() {
   for f in next.config.js next.config.ts next.config.mjs vite.config.ts vite.config.js webpack.config.js; do
     [ -f "$REPO_DIR/$f" ] && found="$f" && break
   done
+  [ -f "$REPO_DIR/turbo.json" ] && [ -z "$found" ] && found="turborepo"
+  [ -f "$REPO_DIR/nx.json" ] && [ -z "$found" ] && found="nx"
   [ -f "$REPO_DIR/Cargo.toml" ] && [ -z "$found" ] && found="cargo"
   [ -f "$REPO_DIR/go.mod" ] && [ -z "$found" ] && found="go"
+  if [ -z "$found" ] && [ -f "$REPO_DIR/pyproject.toml" ]; then
+    local backend
+    backend=$(grep -E 'build-backend' "$REPO_DIR/pyproject.toml" 2>/dev/null | head -1 || true)
+    if echo "$backend" | grep -q 'hatchling'; then
+      found="hatch"
+    elif echo "$backend" | grep -q 'pdm'; then
+      found="pdm"
+    elif echo "$backend" | grep -q 'setuptools'; then
+      found="setuptools"
+    elif echo "$backend" | grep -q 'flit'; then
+      found="flit"
+    elif echo "$backend" | grep -q 'poetry'; then
+      found="poetry"
+    fi
+  fi
   echo "$found"
 }
 
