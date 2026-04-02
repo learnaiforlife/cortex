@@ -4,6 +4,7 @@
     {
       "id": "scaffold-nextjs-fullstack",
       "prompt": "/scaffold test/fixtures/nextjs-app",
+      "fixture": "test/fixtures/nextjs-app",
       "expected_output": "Generated scaffold files for a Next.js fullstack project",
       "files": [],
       "expectations": [
@@ -34,6 +35,7 @@
     {
       "id": "scaffold-python-api",
       "prompt": "/scaffold test/fixtures/python-api",
+      "fixture": "test/fixtures/python-api",
       "expected_output": "Generated scaffold files for a Python FastAPI project",
       "files": [],
       "expectations": [
@@ -58,6 +60,7 @@
     {
       "id": "scaffold-minimal-no-overgenerate",
       "prompt": "/scaffold test/fixtures/minimal",
+      "fixture": "test/fixtures/minimal",
       "expected_output": "Minimal scaffold for a simple project",
       "files": [],
       "expectations": [
@@ -78,6 +81,7 @@
     {
       "id": "scaffold-official-first",
       "prompt": "/scaffold test/fixtures/nextjs-app",
+      "fixture": "test/fixtures/nextjs-app",
       "expected_output": "Official plugins recommended before custom skills",
       "files": [],
       "expectations": [
@@ -113,7 +117,8 @@
     },
     {
       "id": "codex-output-format",
-      "prompt": "/scaffold test/fixtures/nextjs-app",
+      "prompt": "/scaffold test/fixtures/python-api",
+      "fixture": "test/fixtures/python-api",
       "expected_output": "AGENTS.md generated in correct Codex format",
       "files": [],
       "expectations": [
@@ -168,6 +173,7 @@
     {
       "id": "quality-gate-catches-hallucination",
       "prompt": "/scaffold test/fixtures/minimal",
+      "fixture": "test/fixtures/minimal",
       "expected_output": "Quality reviewer catches any hallucinated or incorrect content",
       "files": [],
       "expectations": [
@@ -223,6 +229,7 @@
     {
       "id": "variant-dispatch-monorepo",
       "prompt": "/scaffold test/fixtures/nextjs-app",
+      "fixture": "test/fixtures/nextjs-app",
       "expected_output": "Variant dispatch evaluated; monorepo variant NOT selected for non-monorepo project",
       "files": [],
       "expectations": [
@@ -240,6 +247,7 @@
     {
       "id": "variant-dispatch-minimal",
       "prompt": "/scaffold test/fixtures/minimal",
+      "fixture": "test/fixtures/minimal",
       "expected_output": "Minimal variant selected, generates only essential files",
       "files": [],
       "expectations": [
@@ -275,6 +283,7 @@
     {
       "id": "interactive-subagent-suggestions",
       "prompt": "/scaffold test/fixtures/nextjs-app --all",
+      "fixture": "test/fixtures/nextjs-app",
       "expected_output": "Detects test framework, build tool. Generates model-routed subagent files with correct model in frontmatter.",
       "files": [],
       "expectations": [
@@ -294,6 +303,7 @@
     {
       "id": "soft-skill-suggestions",
       "prompt": "/scaffold test/fixtures/nextjs-app --all",
+      "fixture": "test/fixtures/nextjs-app",
       "expected_output": "Suggests and generates avoid-ai-slop soft skill for docs-heavy project.",
       "files": [],
       "expectations": [
@@ -324,6 +334,7 @@
     {
       "id": "minimal-no-subagents",
       "prompt": "/scaffold test/fixtures/minimal --all",
+      "fixture": "test/fixtures/minimal",
       "expected_output": "Minimal project should not get complex subagent suggestions. No architecture-advisor generated.",
       "files": [],
       "expectations": [

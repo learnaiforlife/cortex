@@ -113,7 +113,8 @@ fi
 
 # CLAUDE.md has no placeholder text (7 pts)
 if [ -f "$REPO_DIR/CLAUDE.md" ]; then
-  PLACEHOLDERS=$(grep -ciE '\[PROJECT_NAME\]|\{\{framework\}\}|TODO:|Add your .* here|PLACEHOLDER' "$REPO_DIR/CLAUDE.md" 2>/dev/null || echo "0")
+  PLACEHOLDERS=$(grep -ciE '\[PROJECT_NAME\]|\{\{framework\}\}|TODO:|Add your .* here|PLACEHOLDER' "$REPO_DIR/CLAUDE.md" 2>/dev/null || true)
+  PLACEHOLDERS=${PLACEHOLDERS:-0}
   if [ "$PLACEHOLDERS" -eq 0 ]; then
     award SPECIFICITY 7
   fi
@@ -121,7 +122,8 @@ fi
 
 # CLAUDE.md contains code blocks with real commands (6 pts)
 if [ -f "$REPO_DIR/CLAUDE.md" ]; then
-  CMD_BLOCKS=$(grep -c '```' "$REPO_DIR/CLAUDE.md" 2>/dev/null || echo "0")
+  CMD_BLOCKS=$(grep -c '```' "$REPO_DIR/CLAUDE.md" 2>/dev/null || true)
+  CMD_BLOCKS=${CMD_BLOCKS:-0}
   if [ "$CMD_BLOCKS" -ge 2 ]; then
     award SPECIFICITY 6
   fi
@@ -141,7 +143,8 @@ fi
 
 # AGENTS.md has no Claude-Code-specific references (6 pts)
 if [ -f "$REPO_DIR/AGENTS.md" ]; then
-  CLAUDE_REFS=$(grep -ciE 'CLAUDE\.md|\.claude/|claude code' "$REPO_DIR/AGENTS.md" 2>/dev/null || echo "0")
+  CLAUDE_REFS=$(grep -ciE 'CLAUDE\.md|\.claude/|claude code' "$REPO_DIR/AGENTS.md" 2>/dev/null || true)
+  CLAUDE_REFS=${CLAUDE_REFS:-0}
   if [ "$CLAUDE_REFS" -eq 0 ]; then
     award SPECIFICITY 6
   fi
@@ -180,7 +183,8 @@ fi
 
 # CLAUDE.md has at least 3 markdown sections (5 pts)
 if [ -f "$REPO_DIR/CLAUDE.md" ]; then
-  SECTIONS=$(grep -c '^##' "$REPO_DIR/CLAUDE.md" 2>/dev/null || echo "0")
+  SECTIONS=$(grep -c '^##' "$REPO_DIR/CLAUDE.md" 2>/dev/null || true)
+  SECTIONS=${SECTIONS:-0}
   if [ "$SECTIONS" -ge 3 ]; then
     award COMPLETENESS 5
   fi

@@ -278,6 +278,14 @@ for i in $(seq 0 $((EVAL_COUNT - 1))); do
     continue
   fi
 
+  # Use per-eval fixture directory if specified, otherwise use global REPO_DIR
+  EVAL_FIXTURE=$(python3 -c "import json; print(json.load(open('$EVALS_FILE'))['evals'][$i].get('fixture', ''))" 2>/dev/null || echo "")
+  if [ -n "$EVAL_FIXTURE" ]; then
+    EVAL_DIR="$REPO_DIR/$EVAL_FIXTURE"
+  else
+    EVAL_DIR="$REPO_DIR"
+  fi
+
   ASSERTION_COUNT=$(python3 -c "
 import json
 e = json.load(open('$EVALS_FILE'))['evals'][$i]
@@ -289,10 +297,22 @@ print(len(e.get('assertions', [])))
     continue
   fi
 
-  echo "── $EVAL_ID ($ASSERTION_COUNT assertions)"
+  echo "── $EVAL_ID ($ASSERTION_COUNT assertions) [dir: $EVAL_DIR]"
   EVAL_PASS=0
   EVAL_FAIL=0
   EVAL_SKIP=0
+
+  # Score the eval-specific directory for score_min assertions
+  EVAL_SCORE_JSON=""
+  if [ -f "$SCRIPT_DIR/score.sh" ]; then
+    EVAL_SCORE_JSON=$(bash "$SCRIPT_DIR/score.sh" "$EVAL_DIR" 2>/dev/null || echo "{}")
+  fi
+
+  # Override REPO_DIR for this eval's assertions
+  SAVED_REPO_DIR="$REPO_DIR"
+  SAVED_SCORE_JSON="$SCORE_JSON"
+  REPO_DIR="$EVAL_DIR"
+  SCORE_JSON="$EVAL_SCORE_JSON"
 
   for j in $(seq 0 $((ASSERTION_COUNT - 1))); do
     ASSERTION_JSON=$(python3 -c "
@@ -328,6 +348,10 @@ json.dump(a, sys.stdout)
         ;;
     esac
   done
+
+  # Restore global REPO_DIR
+  REPO_DIR="$SAVED_REPO_DIR"
+  SCORE_JSON="$SAVED_SCORE_JSON"
 
   STATUS="PASS"
   [ "$EVAL_FAIL" -gt 0 ] && STATUS="FAIL"
