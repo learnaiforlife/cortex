@@ -30,7 +30,7 @@ detect_test_framework() {
 
 detect_linter() {
   local found=""
-  for f in .eslintrc.js .eslintrc.json eslint.config.js eslint.config.mjs biome.json ruff.toml .golangci.yml; do
+  for f in .eslintrc.js .eslintrc.json .eslintrc.yml .eslintrc.yaml .eslintrc eslint.config.js eslint.config.mjs eslint.config.ts biome.json ruff.toml .golangci.yml; do
     [ -f "$REPO_DIR/$f" ] && found="$f" && break
   done
   if [ -z "$found" ] && [ -f "$REPO_DIR/pyproject.toml" ]; then
