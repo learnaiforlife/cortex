@@ -1,6 +1,6 @@
 ---
 name: opportunity-detector
-description: "Analyzes repo structure, environment, and dependencies to produce a structured suggestion manifest of subagents, skills, and integrations. Fast and lightweight — uses heuristics, not deep code reading."
+description: "Use when analyzing repo structure, environment, and dependencies to produce a structured suggestion manifest of subagents, skills, and integrations."
 tools:
   - Read
   - Glob

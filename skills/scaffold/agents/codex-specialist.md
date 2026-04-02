@@ -1,6 +1,6 @@
 ---
 name: codex-specialist
-description: Generates comprehensive AGENTS.md files for OpenAI Codex based on project analysis.
+description: Use when generating comprehensive AGENTS.md files for OpenAI Codex based on project analysis.
 tools:
   - Read
   - Glob

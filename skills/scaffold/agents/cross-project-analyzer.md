@@ -1,6 +1,6 @@
 ---
 name: cross-project-analyzer
-description: Analyzes DeveloperDNA to classify patterns as user-level vs project-level, detect service relationships between repos, and identify cross-project intelligence opportunities.
+description: Use when analyzing DeveloperDNA to classify patterns as user-level vs project-level, detect service relationships, and identify cross-project intelligence opportunities.
 tools:
   - Read
   - Grep

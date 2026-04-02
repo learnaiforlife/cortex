@@ -1,6 +1,6 @@
 ---
 name: scaffold-improver
-description: Iteratively improves scaffold output by targeting the weakest scoring dimension. Reads score breakdown, identifies low-scoring areas, and regenerates only those files.
+description: Use when iteratively improving scaffold output by targeting the weakest scoring dimension. Reads score breakdown and regenerates low-scoring files.
 tools:
   - Read
   - Write

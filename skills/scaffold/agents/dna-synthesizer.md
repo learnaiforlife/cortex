@@ -1,6 +1,6 @@
 ---
 name: dna-synthesizer
-description: Synthesizes DeveloperDNA and ClassificationPlan into a concrete GenerationPlan specifying every file to generate at user-level and project-level, resolving conflicts and deduplication.
+description: Use when synthesizing DeveloperDNA and ClassificationPlan into a concrete GenerationPlan specifying every file to generate, resolving conflicts and deduplication.
 tools:
   - Read
   - Grep

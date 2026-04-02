@@ -1,6 +1,6 @@
 ---
 name: variant-dispatcher
-description: Auto-extracts DERIVED changes from SKILL.md into specialized variant files. Triggered when the skill-improver classifies a change as DERIVED, indicating a repo type needs fundamentally different handling.
+description: Use when auto-extracting DERIVED changes from SKILL.md into specialized variant files for repo types that need fundamentally different handling.
 tools:
   - Read
   - Write

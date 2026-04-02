@@ -1,6 +1,6 @@
 ---
 name: repo-analyzer
-description: Deep codebase exploration agent for Cortex. Reads key files, maps architecture, identifies domain concepts, conventions, and gotchas.
+description: Use when performing deep codebase exploration to read key files, map architecture, identify domain concepts, conventions, and gotchas.
 tools:
   - Read
   - Glob

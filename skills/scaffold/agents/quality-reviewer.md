@@ -1,6 +1,6 @@
 ---
 name: quality-reviewer
-description: Reviews generated scaffold files for correctness, format compliance, and quality before writing to disk.
+description: Use when reviewing generated scaffold files for correctness, format compliance, and quality before writing to disk.
 tools:
   - Read
   - Grep

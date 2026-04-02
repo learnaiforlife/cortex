@@ -1,6 +1,6 @@
 ---
 name: user-level-generator
-description: Generates user-level AI setup files for ~/.claude/ based on a GenerationPlan from dna-synthesizer. Creates developer profile CLAUDE.md, global MCP servers, shared rules, and cross-project agents.
+description: Use when generating user-level AI setup files for ~/.claude/ based on a GenerationPlan. Creates developer profile CLAUDE.md, global MCP servers, shared rules, and cross-project agents.
 tools:
   - Read
   - Write

@@ -1,6 +1,6 @@
 ---
 name: setup-auditor
-description: Audits existing AI dev setup (.claude/, .cursor/, AGENTS.md) for duplicates, stale artifacts, broken configs, and quality issues.
+description: Use when auditing existing AI dev setup (.claude/, .cursor/, AGENTS.md) for duplicates, stale artifacts, broken configs, and quality issues.
 tools:
   - Read
   - Glob

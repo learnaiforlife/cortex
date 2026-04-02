@@ -1,6 +1,6 @@
 ---
 name: skill-improver
-description: Modifies SKILL.md to improve scaffold quality scores. Proposes targeted edits based on experiment results, similar to how autoresearch's agent edits train.py.
+description: Use when modifying SKILL.md to improve scaffold quality scores. Proposes targeted edits based on experiment results.
 tools:
   - Read
   - Write

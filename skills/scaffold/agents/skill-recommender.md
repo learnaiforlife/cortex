@@ -1,6 +1,6 @@
 ---
 name: skill-recommender
-description: Recommends official plugins and custom skills for Cortex. Checks official catalog first, only generates custom skills for gaps.
+description: Use when recommending official plugins and custom skills. Checks official catalog first, only generates custom skills for gaps.
 tools:
   - Read
   - Grep
