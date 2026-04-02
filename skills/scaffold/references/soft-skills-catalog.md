@@ -28,6 +28,7 @@ These skills do not run tests, lint code, or produce artifacts. Instead, they sh
 | **Confidence** | 0.9 |
 | **Priority** | Always suggest for non-trivial projects. This is the single highest-impact soft skill for AI-assisted development. |
 | **Template Path** | `templates/skills/avoid-ai-slop.md` |
+| **Allowed Tools** | `Read`, `Edit`, `Write`, `Bash`, `Grep`, `Glob` |
 | **Value Proposition** | Prevents generic/verbose AI output -- you get tighter code and docs |
 
 **Why this matters**: Without this skill, AI-generated code tends toward over-commenting, verbose variable names, unnecessary abstractions, and documentation that restates the obvious. This skill enforces discipline: no filler comments, no "This function does X" docstrings that add zero information, no emoji-laden commit messages, no marketing language in technical docs.
@@ -47,6 +48,7 @@ These skills do not run tests, lint code, or produce artifacts. Instead, they sh
 | **Confidence** | 0.7 |
 | **Priority** | Medium-to-large projects where wrong architectural decisions are expensive to reverse. |
 | **Template Path** | `templates/skills/devils-advocate.md` |
+| **Allowed Tools** | `Read`, `Grep`, `Glob` |
 | **Value Proposition** | Challenges your design assumptions before you build the wrong thing |
 
 **Why this matters**: In complex projects, the cost of a wrong design decision compounds over time. AI assistants tend toward agreement and implementation rather than pushback. This skill forces a structured adversarial review: "What could go wrong?", "What are you assuming that might not be true?", "Is there a simpler approach?"
@@ -66,6 +68,7 @@ These skills do not run tests, lint code, or produce artifacts. Instead, they sh
 | **Confidence** | 0.8 |
 | **Priority** | High-stakes domains where bugs have real-world consequences beyond broken UIs. |
 | **Template Path** | `templates/skills/grill-me.md` |
+| **Allowed Tools** | `Read`, `Grep`, `Glob` |
 | **Value Proposition** | Asks hard questions about your requirements before you start coding |
 
 **Why this matters**: In regulated or high-stakes domains, missing a requirement is not just a bug -- it is a compliance violation, a security breach, or a financial loss. AI assistants default to building what you ask for, not questioning whether what you asked for is correct or complete. This skill forces the uncomfortable questions upfront.
@@ -85,6 +88,7 @@ These skills do not run tests, lint code, or produce artifacts. Instead, they sh
 | **Confidence** | 0.5 |
 | **Priority** | Low. Always available as an option but never pushed. Most useful for developers who want transparency into AI reasoning. |
 | **Template Path** | `templates/skills/think-out-loud.md` |
+| **Allowed Tools** | `Read`, `Grep`, `Glob` |
 | **Value Proposition** | Shows AI reasoning so you catch bad decisions before they ship |
 
 **Why this matters**: AI assistants sometimes make plausible-sounding but incorrect decisions. Without externalized reasoning, the developer only sees the output -- not the chain of logic that produced it. This skill forces a "thinking step" before action: state assumptions, list options considered, explain why one was chosen.
