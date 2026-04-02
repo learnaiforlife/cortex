@@ -14,9 +14,10 @@ Point it at any repo:
 
 Cortex will:
 1. **Analyze** your codebase (architecture, patterns, domain, services)
-2. **Recommend official plugins** before generating custom skills
-3. **Generate tailored setup** for all three AI coding tools
-4. **Review quality** before writing any files
+2. **Detect opportunities** — subagents, skills, and integrations that match your project
+3. **Ask what you want** — interactive selection with smart defaults (or `--all` to accept everything)
+4. **Generate tailored setup** for all three AI coding tools with correct model routing
+5. **Review quality** before writing any files
 
 Or scan your entire dev environment:
 
@@ -47,10 +48,32 @@ Cortex will find all your projects, tools, services, and integrations, then gene
 
 | Command | What it does |
 |---------|-------------|
-| `/scaffold [repo]` | Analyze repo, generate complete AI setup |
+| `/scaffold [repo]` | Analyze repo, interactive suggestions, generate AI setup |
+| `/scaffold [repo] --all` | Accept all suggestions (no prompts — good for CI/overnight) |
+| `/scaffold [repo] --minimal` | Generate only CLAUDE.md + safety rules |
 | `/scaffold audit` | Scan existing setup for duplicates, stale configs, broken references |
 | `/scaffold optimize` | Run evals, check freshness, auto-improve skills |
 | `/scaffold discover` | Scan your machine, generate user-level + per-project setup |
+
+### Interactive Mode
+
+By default, Cortex detects what your project uses and suggests:
+
+- **Subagents** — test-runner (haiku), lint-format (haiku), code-reviewer (sonnet), pr-writer (sonnet), architecture-advisor (opus)
+- **Soft skills** — avoid-ai-slop, devils-advocate, grill-me, think-out-loud
+- **Integrations** — Jira, Confluence, Slack, Linear, Notion, Sentry, Datadog, GitHub/GitLab
+
+You choose which to generate. Each suggestion includes a model tier and description.
+
+### Model Routing
+
+Generated subagents are assigned the right model tier automatically:
+
+| Tier | Model | Used for |
+|------|-------|----------|
+| Mechanical | haiku | Test running, linting, build watching, commit messages |
+| Creative | sonnet | Code review, PR writing, integration management |
+| Architectural | opus | Architecture advice, complex refactoring |
 
 ## Install
 
@@ -84,13 +107,20 @@ cd cortex
 [Variant Dispatch] --> SKILL-monorepo.md or SKILL-minimal.md (if signals match)
     |
     v
-[Heuristic Pre-scan] --> [2 Parallel Subagents] --> [Quality Review] --> Files
-                              |           |
-                         Repo Analyzer  Skill Recommender
-                         (deep arch)    (official first)
-                              |
-                         Codex Specialist
-                         (AGENTS.md)
+[Heuristic Pre-scan] --> [Opportunity Detection] --> [Interactive Selection]
+                              |                           |
+                         detect-opportunities.sh     AskUserQuestion x3
+                         (subagents, skills,         (or --all to skip)
+                          integrations)                   |
+                              |                           v
+                              v                    [FilteredManifest]
+                    [2 Parallel Subagents]                 |
+                         |           |                    v
+                    Repo Analyzer  Skill Recommender  [Quality Review] --> Files
+                    (deep arch)    (official first)
+                         |
+                    Codex Specialist
+                    (AGENTS.md)
 
 /scaffold discover
     |
@@ -101,7 +131,7 @@ cd cortex
                  Services, Integrations    (user vs project)   Project-level generation
 ```
 
-**11 specialized subagents** | **15 scripts** | **2 skill variants** | **14 eval cases** | **7 reference docs**
+**13 specialized subagents** | **16 scripts** | **2 skill variants** | **18 eval cases** | **10 reference docs** | **17 subagent templates** | **4 soft skill templates**
 
 ## Key Design Decisions
 
@@ -125,10 +155,11 @@ cd cortex
 | `scripts/schedule-autorun.sh` | Setup weekly/monthly automation |
 | `scripts/validate.sh` | Basic format validation |
 | `scripts/analyze.sh` | Heuristic project profile |
+| `scripts/detect-opportunities.sh` | Detect subagent, skill, and integration opportunities |
 
 ## Status
 
-**v0.2.0** — Active development. Tested against 3 fixture projects and 25 real repos via discovery engine. The autoresearch loop and quality scoring are functional but would benefit from broader validation across more project types and larger codebases.
+**v0.3.0** — Interactive scaffold with smart suggestions, model routing, and integration detection. Tested against 3 fixture projects and 3 OSS repos (shadcn-ui, FastAPI, Express). Eval suite: 100% pass rate (52/52 assertions). Autoresearch baseline: 97.3/100.
 
 Contributions and feedback welcome.
 
