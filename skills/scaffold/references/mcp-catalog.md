@@ -305,6 +305,102 @@ Known MCP servers with detection signals and configuration templates. Use this c
 
 ---
 
+### gitlab
+- **Transport**: stdio
+- **Command**: `npx`
+- **Args**: `["-y", "@anthropic-ai/mcp-server-gitlab"]`
+- **Trigger when**:
+  - `.gitlab-ci.yml` exists in the project root
+  - Remote origin URL points to gitlab.com or a self-hosted GitLab instance
+  - `GITLAB_TOKEN` environment variable is set
+  - `.gitlab/` directory with CI/CD or issue templates exists
+  - Merge request templates exist (`.gitlab/merge_request_templates/`)
+- **Confidence**: recommended
+- **What it provides**: Create/read/update merge requests, issues, branches, and pipelines directly from Claude Code. Enables full GitLab workflow without leaving the terminal.
+- **When to skip**: Project is not hosted on GitLab (uses GitHub, Bitbucket, etc.), or team does not use GitLab's MR/issue workflow.
+- **Security notes**: Requires a GitLab personal access token. Minimum scopes: `api` for full access, or `read_api` for read-only. Use project-scoped tokens when possible.
+- **Level note**: User-level MCP server -- applies to all projects. Configure in `~/.claude/.mcp.json`.
+- **Env vars needed**: `GITLAB_TOKEN` -- GitLab personal access token
+- **Configuration**:
+```json
+{
+  "gitlab": {
+    "type": "stdio",
+    "command": "npx",
+    "args": ["-y", "@anthropic-ai/mcp-server-gitlab"],
+    "env": {
+      "GITLAB_TOKEN": "${GITLAB_TOKEN}"
+    }
+  }
+}
+```
+
+---
+
+### confluence
+- **Transport**: stdio
+- **Command**: `npx`
+- **Args**: `["-y", "@anthropic-ai/mcp-server-confluence"]`
+- **Trigger when**:
+  - `CONFLUENCE_URL` environment variable is set
+  - `CONFLUENCE_TOKEN` environment variable is set
+  - Project documentation references Confluence pages or spaces
+  - Team wiki or knowledge base is hosted on Confluence
+- **Confidence**: recommended (when detected by Discover)
+- **What it provides**: Search, create, read, and update Confluence pages and spaces from Claude Code. Enables documentation workflows and knowledge base management without leaving the terminal.
+- **When to skip**: Team does not use Confluence. If documentation lives in Notion, Google Docs, or the repo itself, skip this.
+- **Security notes**: Requires Confluence API token and associated email. Use API tokens with minimum required permissions. Tokens are tied to a specific Atlassian account. Never use admin-level tokens.
+- **Level note**: User-level MCP server -- applies to all projects. Configure in `~/.claude/.mcp.json`.
+- **Env vars needed**: `CONFLUENCE_URL` -- Confluence instance URL (e.g., `https://mycompany.atlassian.net/wiki`), `CONFLUENCE_EMAIL` -- Confluence account email, `CONFLUENCE_TOKEN` -- Confluence API token
+- **Configuration**:
+```json
+{
+  "confluence": {
+    "type": "stdio",
+    "command": "npx",
+    "args": ["-y", "@anthropic-ai/mcp-server-confluence"],
+    "env": {
+      "CONFLUENCE_URL": "${CONFLUENCE_URL}",
+      "CONFLUENCE_EMAIL": "${CONFLUENCE_EMAIL}",
+      "CONFLUENCE_TOKEN": "${CONFLUENCE_TOKEN}"
+    }
+  }
+}
+```
+
+---
+
+### pagerduty
+- **Transport**: stdio
+- **Command**: `npx`
+- **Args**: `["-y", "@anthropic-ai/mcp-server-pagerduty"]`
+- **Trigger when**:
+  - `PAGERDUTY_TOKEN` environment variable is set
+  - `@pagerduty/` packages in project dependencies
+  - PagerDuty webhook URLs in configuration
+  - Incident management references in project documentation
+- **Confidence**: recommended (when detected by Discover)
+- **What it provides**: View and manage PagerDuty incidents, list on-call schedules, add notes to incidents, and correlate alerts with recent code changes. Enables incident response workflows from Claude Code.
+- **When to skip**: Team does not use PagerDuty. If using Opsgenie, VictorOps, or another incident management tool, this server is not relevant.
+- **Security notes**: Requires PagerDuty API token. Use tokens with minimum required permissions. Read-only tokens are sufficient for viewing incidents; write access is needed to acknowledge or resolve.
+- **Level note**: User-level MCP server -- applies to all projects. Configure in `~/.claude/.mcp.json`.
+- **Env vars needed**: `PAGERDUTY_TOKEN` -- PagerDuty API v2 token
+- **Configuration**:
+```json
+{
+  "pagerduty": {
+    "type": "stdio",
+    "command": "npx",
+    "args": ["-y", "@anthropic-ai/mcp-server-pagerduty"],
+    "env": {
+      "PAGERDUTY_TOKEN": "${PAGERDUTY_TOKEN}"
+    }
+  }
+}
+```
+
+---
+
 ## MCP Server Selection Logic
 
 Use this decision process when analyzing a project:
@@ -343,6 +439,11 @@ Quick reference for all required env vars across all servers:
 | puppeteer | -- | None required | -- |
 | filesystem | -- | None required | -- |
 | memory | -- | None required | -- |
+| gitlab | `GITLAB_TOKEN` | GitLab personal access token | Yes |
+| confluence | `CONFLUENCE_URL` | Confluence instance URL | Yes |
+| confluence | `CONFLUENCE_EMAIL` | Confluence account email | Yes |
+| confluence | `CONFLUENCE_TOKEN` | Confluence API token | Yes |
+| pagerduty | `PAGERDUTY_TOKEN` | PagerDuty API v2 token | Yes |
 | jira | `JIRA_URL` | Jira instance URL | Yes |
 | jira | `JIRA_EMAIL` | Jira account email | Yes |
 | jira | `JIRA_API_TOKEN` | Jira API token | Yes |
