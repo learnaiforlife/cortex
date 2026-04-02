@@ -8,7 +8,7 @@
 #                       If omitted, reads from stdin
 #
 # Output: JSON object with company signals to stdout
-# Privacy: Only reads git remote URLs and config file paths, not credentials
+# Privacy: Reads local config files only to detect registry hosts and always redacts credentials
 
 set -uo pipefail
 
@@ -27,8 +27,11 @@ if [ -z "$PROJECTS_FILE" ] || [ ! -f "$PROJECTS_FILE" ]; then
 fi
 
 python3 - "$PROJECTS_FILE" <<'PYTHON_EOF'
-import json, os, sys, re
+import json, logging, os, sys, re
 from collections import Counter
+from urllib.parse import urlsplit, urlunsplit
+
+logging.basicConfig(level=logging.WARNING, format='%(levelname)s: %(message)s', stream=sys.stderr)
 
 # Read projects from file argument (always file-based, never shell interpolation)
 projects_file = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1] and os.path.exists(sys.argv[1]) else None
@@ -36,10 +39,31 @@ if projects_file:
     try:
         with open(projects_file) as f:
             projects = json.load(f)
-    except Exception:
+    except Exception as e:
+        logging.warning('Failed to load projects file %s: %s', projects_file, e)
         projects = []
 else:
     projects = []
+
+def sanitize_registry_url(url):
+    if not url:
+        return url
+    try:
+        if url.startswith('//'):
+            parts = urlsplit(f'https:{url}')
+            netloc = parts.hostname or ''
+            if parts.port:
+                netloc = f'{netloc}:{parts.port}'
+            return f'//{netloc}{parts.path}'
+        if '://' in url:
+            parts = urlsplit(url)
+            netloc = parts.hostname or ''
+            if parts.port:
+                netloc = f'{netloc}:{parts.port}'
+            return urlunsplit((parts.scheme, netloc, parts.path, '', ''))
+    except Exception:
+        pass
+    return url
 
 # --- Internal Registries ---
 internal_registries = []
@@ -52,16 +76,16 @@ if os.path.exists(npmrc_path):
             for line in f:
                 line = line.strip()
                 if 'registry=' in line and 'registry.npmjs.org' not in line and not line.startswith('#'):
-                    url = line.split('registry=')[-1].strip()
+                    url = sanitize_registry_url(line.split('registry=')[-1].strip())
                     if url and '.' in url:
                         internal_registries.append({'type': 'npm', 'url': url})
                 elif line.startswith('@') and ':registry=' in line:
                     scope = line.split(':')[0]
-                    url = line.split('registry=')[-1].strip()
+                    url = sanitize_registry_url(line.split('registry=')[-1].strip())
                     if url and 'registry.npmjs.org' not in url:
                         internal_registries.append({'type': 'npm-scoped', 'scope': scope, 'url': url})
-    except:
-        pass
+    except Exception as e:
+        logging.warning('Failed to parse ~/.npmrc: %s', e)
 
 # Check pip config
 for pip_conf in [os.path.expanduser('~/.pip/pip.conf'), os.path.expanduser('~/.config/pip/pip.conf')]:
@@ -72,11 +96,11 @@ for pip_conf in [os.path.expanduser('~/.pip/pip.conf'), os.path.expanduser('~/.c
                 if 'index-url' in content:
                     for line in content.split('\n'):
                         if 'index-url' in line and 'pypi.org' not in line and not line.strip().startswith('#'):
-                            url = line.split('=')[-1].strip()
+                            url = sanitize_registry_url(line.split('=')[-1].strip())
                             if url and '.' in url:
                                 internal_registries.append({'type': 'pip', 'url': url})
-        except:
-            pass
+        except Exception as e:
+            logging.warning('Failed to parse %s: %s', pip_conf, e)
 
 # --- Internal CLIs ---
 # Known public CLIs to exclude from internal detection
@@ -115,8 +139,8 @@ for pdir in path_dirs:
                             prefix = f.split('-')[0]
                             # Check if prefix appears in multiple tools
                             internal_clis.append(f)
-        except:
-            pass
+        except Exception as e:
+            logging.warning('Failed to scan PATH dir %s: %s', pdir, e)
 
 # Deduplicate and limit
 internal_clis = sorted(set(internal_clis))[:20]

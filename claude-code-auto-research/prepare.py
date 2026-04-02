@@ -6,12 +6,15 @@ and runs an initial eval to establish a baseline score.
 """
 
 import json
+import logging
 import os
 import shutil
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 
@@ -87,8 +90,8 @@ def check_claude_cli() -> bool:
         if result.returncode == 0:
             print(f"Claude CLI found: {result.stdout.strip()}")
             return True
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
+    except (FileNotFoundError, subprocess.TimeoutExpired) as e:
+        logger.debug("Claude CLI check failed: %s", e)
 
     print("WARNING: 'claude' CLI not found. The autonomous loop requires it.")
     print("Install it with: npm install -g @anthropic-ai/claude-code")
