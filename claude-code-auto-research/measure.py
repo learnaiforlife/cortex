@@ -17,7 +17,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).parent.resolve()
 
 
-def load_config():
+def load_config() -> dict:
     with open(SCRIPT_DIR / "config.json") as f:
         return json.load(f)
 
@@ -368,7 +368,7 @@ def measure(config: dict = None) -> dict:
     return result
 
 
-def main():
+def main() -> None:
     config = load_config()
     print(f"Measuring {get_target_name(config)} across {len(config['fixtures'])} fixtures...", file=sys.stderr)
 

@@ -23,7 +23,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).parent.resolve()
 
 
-def load_config():
+def load_config() -> dict:
     with open(SCRIPT_DIR / "config.json") as f:
         return json.load(f)
 
@@ -37,7 +37,7 @@ def read_file(path: Path) -> str:
         return f.read()
 
 
-def write_file(path: Path, content: str):
+def write_file(path: Path, content: str) -> None:
     with open(path, "w") as f:
         f.write(content)
 
@@ -65,7 +65,7 @@ def load_results() -> list[dict]:
     return results
 
 
-def append_result(iteration: int, score: float, delta: float, summary: str, status: str):
+def append_result(iteration: int, score: float, delta: float, summary: str, status: str) -> None:
     """Append a result to results.tsv."""
     results_path = SCRIPT_DIR / "results.tsv"
     if not results_path.exists():
@@ -185,7 +185,7 @@ Then output the complete modified file between these markers:
     return new_content, change_summary
 
 
-def apply_best(config: dict):
+def apply_best(config: dict) -> None:
     """Copy the best version back to the target location."""
     target = resolve_path(config["target_file"])
     best_dir = SCRIPT_DIR / "snapshots" / "best"
@@ -219,7 +219,7 @@ def apply_best(config: dict):
                   f"(+{best['score'] - baseline['score']:.1f})")
 
 
-def run_loop(config: dict, dry_run: bool = False):
+def run_loop(config: dict, dry_run: bool = False) -> None:
     """The main autonomous optimization loop."""
     target = resolve_path(config["target_file"])
     max_iterations = config.get("max_iterations", 10)
@@ -349,7 +349,7 @@ def run_loop(config: dict, dry_run: bool = False):
     print(f"To apply: python run.py --apply-best")
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Claude Code Auto-Research — Optimization Loop")
     parser.add_argument("--apply-best", action="store_true", help="Copy best version to target")
     parser.add_argument("--dry-run", action="store_true", help="Show what would happen without changes")

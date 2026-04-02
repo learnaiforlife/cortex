@@ -16,7 +16,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).parent.resolve()
 
 
-def load_config():
+def load_config() -> dict:
     config_path = SCRIPT_DIR / "config.json"
     if not config_path.exists():
         print("ERROR: config.json not found")
@@ -30,7 +30,7 @@ def resolve_path(relative_path: str) -> Path:
     return (SCRIPT_DIR / relative_path).resolve()
 
 
-def validate_config(config: dict):
+def validate_config(config: dict) -> None:
     """Validate that all referenced files and directories exist."""
     errors = []
 
@@ -60,7 +60,7 @@ def validate_config(config: dict):
     print("All paths validated successfully.")
 
 
-def snapshot_baseline(config: dict):
+def snapshot_baseline(config: dict) -> None:
     """Copy the target file to snapshots/baseline/."""
     target = resolve_path(config["target_file"])
     baseline_dir = SCRIPT_DIR / "snapshots" / "baseline"
@@ -77,7 +77,7 @@ def snapshot_baseline(config: dict):
     print(f"Initial best snapshot saved: {best_dir / target.name}")
 
 
-def check_claude_cli():
+def check_claude_cli() -> bool:
     """Verify that the claude CLI is available."""
     try:
         result = subprocess.run(
@@ -95,7 +95,7 @@ def check_claude_cli():
     return False
 
 
-def run_baseline_eval(config: dict):
+def run_baseline_eval(config: dict) -> float | None:
     """Run measure.py to get the baseline score."""
     print("\nRunning baseline evaluation...")
     result = subprocess.run(
@@ -128,7 +128,7 @@ def run_baseline_eval(config: dict):
         return None
 
 
-def read_program():
+def read_program() -> None:
     """Read and display the optimization program."""
     program_path = SCRIPT_DIR / "program.md"
     if not program_path.exists():
@@ -145,7 +145,7 @@ def read_program():
     print("=" * 60)
 
 
-def main():
+def main() -> None:
     print("=" * 60)
     print("Claude Code Auto-Research — Setup")
     print("=" * 60)

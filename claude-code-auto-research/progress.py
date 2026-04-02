@@ -32,7 +32,7 @@ def load_results() -> list[dict]:
     return results
 
 
-def print_progress(results: list[dict]):
+def print_progress(results: list[dict]) -> None:
     if not results:
         print("No results yet. Run 'python prepare.py' then 'python run.py' to start.")
         return
@@ -108,7 +108,7 @@ def print_progress(results: list[dict]):
     print()
 
 
-def main():
+def main() -> None:
     results = load_results()
     print_progress(results)
 
