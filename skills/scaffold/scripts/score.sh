@@ -27,20 +27,29 @@ SPECIFICITY_MAX=25
 COMPLETENESS_MAX=25
 STRUCTURE_MAX=25
 
-# Helper: award points to a dimension variable
+# Helper: award points to a dimension variable (safe arithmetic, no eval)
 # Usage: award FORMAT 5
 award() {
-  local var="$1_SCORE"
+  local dim="$1"
   local pts="$2"
-  local current=$(eval echo \$$var)
-  local max_var="$1_MAX"
-  local max=$(eval echo \$$max_var)
-  local new=$((current + pts))
-  # Cap at max
-  if [ "$new" -gt "$max" ]; then
-    new=$max
-  fi
-  eval "$var=$new"
+  case "$dim" in
+    FORMAT)
+      FORMAT_SCORE=$((FORMAT_SCORE + pts))
+      [ "$FORMAT_SCORE" -gt "$FORMAT_MAX" ] && FORMAT_SCORE=$FORMAT_MAX || true
+      ;;
+    SPECIFICITY)
+      SPECIFICITY_SCORE=$((SPECIFICITY_SCORE + pts))
+      [ "$SPECIFICITY_SCORE" -gt "$SPECIFICITY_MAX" ] && SPECIFICITY_SCORE=$SPECIFICITY_MAX || true
+      ;;
+    COMPLETENESS)
+      COMPLETENESS_SCORE=$((COMPLETENESS_SCORE + pts))
+      [ "$COMPLETENESS_SCORE" -gt "$COMPLETENESS_MAX" ] && COMPLETENESS_SCORE=$COMPLETENESS_MAX || true
+      ;;
+    STRUCTURE)
+      STRUCTURE_SCORE=$((STRUCTURE_SCORE + pts))
+      [ "$STRUCTURE_SCORE" -gt "$STRUCTURE_MAX" ] && STRUCTURE_SCORE=$STRUCTURE_MAX || true
+      ;;
+  esac
 }
 
 # ─── Dimension 1: Format Compliance (25 pts) ───
