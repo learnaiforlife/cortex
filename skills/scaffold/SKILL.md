@@ -36,7 +36,7 @@ Variant dispatch happens BEFORE mode routing. Variant files may override or exte
 
 Before mode routing, extract flags from `$ARGUMENTS`:
 - `--all` or `--yes`: Set INTERACTIVE_MODE=false, generate everything detected
-- `--minimal`: Set INTERACTIVE_MODE=false, generate only CLAUDE.md + safety rules (use minimal variant behavior)
+- `--minimal`: Set INTERACTIVE_MODE=false and `MINIMAL_MODE=true`, generate only CLAUDE.md + safety rules (use minimal variant behavior)
 - Strip flags from `$ARGUMENTS` before passing to mode routing
 
 ## Mode Routing
@@ -89,7 +89,7 @@ Store the output as PROJECT_PROFILE. Even an empty `{}` is fine -- the subagents
 
 ### Step 2.5: Opportunity Detection
 
-If `$ARGUMENTS` contains `--minimal`, skip Steps 2.5 and 2.7 entirely — generate only CLAUDE.md + safety rules (minimal variant behavior).
+If `$ARGUMENTS` contains `--minimal`, set `MINIMAL_MODE=true` and skip Steps 2.5 and 2.7 entirely — generate only CLAUDE.md + safety rules (minimal variant behavior).
 
 Dispatch the **opportunity-detector** subagent to analyze the repo and environment for suggestions:
 
@@ -195,7 +195,7 @@ If any exist:
 
 Using the combined output from both subagents and your own reading, generate files for all three tools. Read the format references to ensure compliance.
 
-**Filtered Generation Gate**: Only generate artifacts that appear in FILTERED_MANIFEST (built in Step 2.7 or from --all flag). If a subagent was not selected, do not generate its `.claude/agents/` file. If an integration was not selected, do not generate its MCP config or subagent file. If no FILTERED_MANIFEST exists (Steps 2.5/2.7 were skipped or no suggestions found), generate the standard scaffold output.
+**Filtered Generation Gate**: Only generate artifacts that appear in FILTERED_MANIFEST (built in Step 2.7 or from --all flag). If a subagent was not selected, do not generate its `.claude/agents/` file. If an integration was not selected, do not generate its MCP config or subagent file. If `MINIMAL_MODE=true`, override all other cases and generate only `CLAUDE.md` plus safety rules. If no FILTERED_MANIFEST exists because no suggestions were found, generate the standard scaffold output.
 
 #### 5A: Claude Code Files
 
@@ -239,26 +239,37 @@ For each subagent in FILTERED_MANIFEST.subagents:
 2. Replace `{{PLACEHOLDERS}}` with actual project values from repo-analyzer output:
    - `{{TEST_FRAMEWORK}}` → detected test framework (jest, pytest, etc.)
    - `{{TEST_COMMAND}}` → actual test command from package.json scripts or Makefile
+   - `{{TEST_SINGLE_COMMAND}}` → actual single-test command for the project's framework, if supported
+   - `{{TEST_WATCH_COMMAND}}` → actual watch-mode test command, if supported
    - `{{LINT_COMMAND}}` → actual lint command
+   - `{{FORMAT_COMMAND}}` → actual format-check or formatter command
+   - `{{LINT_FIX_COMMAND}}` → actual auto-fix command, if supported
    - `{{BUILD_COMMAND}}` → actual build command
+   - `{{BUILD_FRAMEWORK}}` → actual build system or compiler/bundler name
+   - `{{DEV_COMMAND}}` → actual development or preview command, if supported
    - `{{PROJECT_NAME}}` → repo name
    - `{{COMMIT_CONVENTION}}` → conventional commits or project convention
-3. Write the filled template to `.claude/agents/{subagent.id}.md`
+   - `{{ARCHITECTURE_DOCS}}` → actual architecture doc path(s), if present
+   - `{{CONVENTIONS_FILE}}` → actual conventions/rules file path, if present
+   - `{{PR_TEMPLATE}}` → actual PR template path, if present
+3. If a placeholder has no concrete value, rewrite or remove the affected sentence so the final file still reflects the project's real capabilities. Never leave `{{...}}` text in the generated file.
+4. Add the filled template to `ALL_GENERATED_FILES_WITH_PATHS` under `.claude/agents/{subagent.id}.md`. Do not write it to disk yet.
 
 **8. Soft Skill Generation** (if FILTERED_MANIFEST has productivity skills)
 
 For each skill in FILTERED_MANIFEST.skills.productivity:
 1. Read the template from `${CLAUDE_SKILL_DIR}/templates/skills/{skill.id}.md`
-2. Copy to `.claude/skills/{skill.id}/SKILL.md` (no parameterization needed — these are universal)
+2. Add it to `ALL_GENERATED_FILES_WITH_PATHS` under `.claude/skills/{skill.id}/SKILL.md` (no parameterization needed — these are universal). Do not write it to disk yet.
 
 **9. Integration Subagent Generation** (if FILTERED_MANIFEST has integrations)
 
 Dispatch the **integration-subagent-gen** subagent with the selected integrations, template directory path, and project values. The subagent:
 1. Reads each integration template from `${CLAUDE_SKILL_DIR}/templates/subagents/{integration.id}.md`
 2. Fills `{{PLACEHOLDERS}}` with project-specific values
-3. Writes filled templates to `.claude/agents/{integration.id}.md`
-4. Generates MCP config entries in `.mcp.json` (using `${ENV_VAR}` syntax for credentials)
+3. Returns filled templates mapped to `.claude/agents/{integration.id}.md`
+4. Returns MCP config entries for `.mcp.json` (using `${ENV_VAR}` syntax for credentials)
 5. Returns setup instructions for the summary
+6. Does **not** write anything to disk in this step — Step 7 handles all writes after the quality gate passes
 
 #### 5B: Cursor Files
 
@@ -730,7 +741,7 @@ When `$ARGUMENTS` starts with "discover", run the machine-wide discovery and mul
 
 ### Step D1: Permission and Directory Selection
 
-Parse any directories from `$ARGUMENTS` (after "discover"). If `--user-level-only` is present, note it for Step D7.
+Parse any directories from `$ARGUMENTS` (after "discover") into a `SCAN_DIRS` array so spaces are preserved. If `--user-level-only` is present, note it for Step D7.
 
 Present the user with a permission prompt:
 
@@ -756,7 +767,7 @@ Proceed? [Yes / Customize directories / Cancel]
 
 Default directories (if none specified): `~/Documents`, `~/workspace`, `~/projects`, `~/code`, `~/Desktop`.
 
-If the user wants to customize, ask for a comma-separated list of directories.
+If the user wants to customize, ask for a comma-separated list of directories, trim whitespace, and store them in the `SCAN_DIRS` array.
 
 If the user cancels, stop immediately.
 
@@ -765,7 +776,7 @@ If the user cancels, stop immediately.
 Execute the discovery orchestrator (shell scripts only, no LLM calls):
 
 ```bash
-bash "${CLAUDE_SKILL_DIR}/scripts/discover-orchestrator.sh" $SCAN_DIRS > /tmp/cortex-developer-dna.json
+bash "${CLAUDE_SKILL_DIR}/scripts/discover-orchestrator.sh" "${SCAN_DIRS[@]}" > /tmp/cortex-developer-dna.json
 ```
 
 This runs 5 discovery scripts in parallel:

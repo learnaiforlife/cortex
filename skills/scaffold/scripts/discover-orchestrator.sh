@@ -18,28 +18,28 @@ START_TIME=$(date +%s)
 
 # Default directories
 if [ $# -eq 0 ]; then
-  SCAN_DIRS="$HOME/Documents $HOME/workspace $HOME/projects $HOME/code $HOME/Desktop"
+  SCAN_DIRS=("$HOME/Documents" "$HOME/workspace" "$HOME/projects" "$HOME/code" "$HOME/Desktop")
 else
-  SCAN_DIRS="$*"
+  SCAN_DIRS=("$@")
 fi
 
 # Filter to directories that actually exist
-VALID_DIRS=""
-for d in $SCAN_DIRS; do
+VALID_DIRS=()
+for d in "${SCAN_DIRS[@]}"; do
   d="${d/#\~/$HOME}"  # Safe tilde expansion (no eval)
   if [ -d "$d" ]; then
-    VALID_DIRS="$VALID_DIRS $d"
+    VALID_DIRS+=("$d")
   fi
 done
 
-if [ -z "$VALID_DIRS" ]; then
+if [ ${#VALID_DIRS[@]} -eq 0 ]; then
   echo "ERROR: No valid directories found to scan" >&2
   echo '{"error": "No valid directories"}'
   exit 1
 fi
 
 echo "Cortex Discover — Scanning your development environment..." >&2
-echo "Directories: $VALID_DIRS" >&2
+printf 'Directories: %s\n' "$(printf '%s, ' "${VALID_DIRS[@]}" | sed 's/, $//')" >&2
 echo "" >&2
 
 # Create temp directory for intermediate results
@@ -49,7 +49,7 @@ trap 'rm -rf "$TMPDIR_DISCOVER"' EXIT
 # --- Phase 1: Run independent discovery scripts in parallel ---
 echo "Phase 1: Running discovery scripts in parallel..." >&2
 
-bash "$SCRIPT_DIR/discover-projects.sh" $VALID_DIRS > "$TMPDIR_DISCOVER/projects.json" 2>"$TMPDIR_DISCOVER/projects.err" &
+bash "$SCRIPT_DIR/discover-projects.sh" "${VALID_DIRS[@]}" > "$TMPDIR_DISCOVER/projects.json" 2>"$TMPDIR_DISCOVER/projects.err" &
 PID_PROJECTS=$!
 
 bash "$SCRIPT_DIR/discover-tools.sh" > "$TMPDIR_DISCOVER/tools.json" 2>"$TMPDIR_DISCOVER/tools.err" &
@@ -83,14 +83,14 @@ echo "Phase 3: Synthesizing DeveloperDNA..." >&2
 END_TIME=$(date +%s)
 DURATION=$((END_TIME - START_TIME))
 
-python3 - "$TMPDIR_DISCOVER" "$DURATION" "$VALID_DIRS" <<'PYTHON_DNA'
+python3 - "$TMPDIR_DISCOVER" "$DURATION" "${VALID_DIRS[@]}" <<'PYTHON_DNA'
 import json, os, sys
 from collections import Counter
 from datetime import datetime, timezone
 
 tmpdir = sys.argv[1]
 duration = int(sys.argv[2])
-scan_dirs = sys.argv[3].split()
+scan_dirs = sys.argv[3:]
 
 # Load all discovery results
 def load_json(path, default):

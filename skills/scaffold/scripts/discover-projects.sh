@@ -13,9 +13,9 @@ set -uo pipefail
 
 # Default scan directories
 if [ $# -eq 0 ]; then
-  SCAN_DIRS="$HOME/Documents $HOME/workspace $HOME/projects $HOME/code $HOME/Desktop"
+  SCAN_DIRS=("$HOME/Documents" "$HOME/workspace" "$HOME/projects" "$HOME/code" "$HOME/Desktop")
 else
-  SCAN_DIRS="$*"
+  SCAN_DIRS=("$@")
 fi
 
 # Scan a single repo and output a JSON object
@@ -29,8 +29,23 @@ scan_single_repo() {
   python3 -c "
 import json, subprocess, os, sys
 from datetime import datetime, timezone, timedelta
+from urllib.parse import urlsplit, urlunsplit
 
 repo_dir = sys.argv[1]
+
+def sanitize_remote(remote):
+    if not remote:
+        return ''
+    try:
+        if '://' in remote:
+            parts = urlsplit(remote)
+            netloc = parts.hostname or ''
+            if parts.port:
+                netloc = f'{netloc}:{parts.port}'
+            return urlunsplit((parts.scheme, netloc, parts.path, '', ''))
+    except Exception:
+        pass
+    return remote
 
 def run(cmd, timeout=5):
     try:
@@ -41,7 +56,7 @@ def run(cmd, timeout=5):
 
 # Basic info
 name = os.path.basename(os.path.abspath(repo_dir))
-remote = run(['git', 'remote', 'get-url', 'origin'])
+remote = sanitize_remote(run(['git', 'remote', 'get-url', 'origin']))
 last_commit = run(['git', 'log', '-1', '--format=%cI'])
 
 # Activity classification
@@ -290,7 +305,7 @@ declare -f scan_single_repo > "$TMPDIR_DISCOVER/scan_func.sh"
 echo 'scan_single_repo "$1"' >> "$TMPDIR_DISCOVER/scan_func.sh"
 
 # Collect repo paths, excluding common non-project directories
-for dir in $SCAN_DIRS; do
+for dir in "${SCAN_DIRS[@]}"; do
   dir="${dir/#\~/$HOME}"  # Safe tilde expansion (no eval)
   [ -d "$dir" ] || continue
   find "$dir" -maxdepth 4 -name ".git" -type d \

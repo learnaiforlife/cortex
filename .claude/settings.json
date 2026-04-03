@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=\"$FILE_PATH\"; case \"$FILE\" in */test/fixtures/*) echo 'BLOCKED: Do not modify test fixtures' >&2; exit 2;; */references/*.md) echo 'WARNING: Editing reference catalog -- run evals after' >&2; exit 0;; *) exit 0;; esac"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=\"$FILE_PATH\"; case \"$FILE\" in */agents/*.md|*/SKILL*.md) echo 'Reminder: Run bash skills/scaffold/scripts/run-skill-evals.sh to verify changes' >&2;; esac; exit 0"
+          }
+        ]
+      }
+    ]
+  }
+}
