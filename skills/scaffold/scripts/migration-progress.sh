@@ -10,6 +10,16 @@ REPO_DIR="${1:-.}"
 REPO_DIR="$(cd "$REPO_DIR" && pwd)"
 PLAN_FILE="$REPO_DIR/MIGRATION-PLAN.md"
 
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"    # backslashes first
+  s="${s//\"/\\\"}"    # double quotes
+  s="${s//$'\t'/\\t}"  # tabs
+  s="${s//$'\n'/\\n}"  # newlines
+  s="${s//$'\r'/\\r}"  # carriage returns
+  printf '%s' "$s"
+}
+
 if [ ! -f "$PLAN_FILE" ]; then
   echo '{"error": "No MIGRATION-PLAN.md found. Run /scaffold migrate to create one."}'
   exit 1
@@ -41,17 +51,20 @@ fi
 
 # Extract migration type from title
 MIGRATION_TITLE=$(grep "^# Migration Plan:" "$PLAN_FILE" | head -1 | sed 's/# Migration Plan: //' || echo "Unknown")
-MIGRATION_TITLE=$(echo "$MIGRATION_TITLE" | sed 's/"/\\"/g')
+MIGRATION_TITLE=$(json_escape "$MIGRATION_TITLE")
 
 # Extract strategy and risk from overview
 STRATEGY=$(grep "^\*\*Strategy\*\*:" "$PLAN_FILE" | head -1 | sed 's/.*: //' || echo "Unknown")
+STRATEGY=$(json_escape "$STRATEGY")
 RISK_LEVEL=$(grep "^\*\*Risk Level\*\*:" "$PLAN_FILE" | head -1 | sed 's/.*: //' || echo "Unknown")
+RISK_LEVEL=$(json_escape "$RISK_LEVEL")
 
 # Find current phase
 CURRENT_PHASE_LINE=$(grep "IN_PROGRESS" "$PLAN_FILE" | head -1 || echo "")
 CURRENT_PHASE="none"
 if [ -n "$CURRENT_PHASE_LINE" ]; then
   CURRENT_PHASE=$(echo "$CURRENT_PHASE_LINE" | sed 's/## Phase [0-9]*: \(.*\) —.*/\1/')
+  CURRENT_PHASE=$(json_escape "$CURRENT_PHASE")
 fi
 
 # Find blockers
@@ -59,7 +72,8 @@ BLOCKER_LIST=""
 BLOCKER_FIRST=true
 while IFS= read -r line; do
   [ -z "$line" ] && continue
-  BLOCKER_DESC=$(echo "$line" | sed 's/- \[ \] //' | sed 's/"/\\"/g')
+  BLOCKER_DESC=$(echo "$line" | sed 's/- \[ \] //')
+  BLOCKER_DESC=$(json_escape "$BLOCKER_DESC")
   if [ "$BLOCKER_FIRST" = true ]; then
     BLOCKER_FIRST=false
   else

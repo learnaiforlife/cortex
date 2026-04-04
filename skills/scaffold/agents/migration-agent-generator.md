@@ -43,12 +43,40 @@ You receive:
    | toolchain | `migration-converter.md` (simplified) |
    | ai-tools | None (standard scaffold handles this) |
 
-3. **Fill template placeholders** with values from the MigrationProfile:
-   - Replace `{{SOURCE_TECH}}`, `{{TARGET_TECH}}` with actual technology names
-   - Replace `{{SOURCE_DIR}}`, `{{TARGET_DIR}}` with actual paths from the repo
-   - Replace `{{CONVERSION_RULES}}` with rules from the migration catalog
-   - Replace `{{TEST_COMMAND}}` with the actual test command for the target technology
-   - Replace `{{SHARED_CONTRACT}}` with actual shared interface paths
+3. **Fill template placeholders** with values from the MigrationProfile and catalog. Every template placeholder MUST be resolved — no `{{VAR}}` should remain in output.
+
+   **migration-converter.md placeholders:**
+   - `{{SOURCE_TECH}}`, `{{TARGET_TECH}}` — actual technology names (e.g. "Python 3.11 (FastAPI)")
+   - `{{SOURCE_EXT}}`, `{{TARGET_EXT}}` — file extensions (e.g. ".py", ".ts")
+   - `{{SOURCE_DIR}}`, `{{TARGET_DIR}}` — actual paths from the repo
+   - `{{SHARED_CONTRACT}}` — path to shared API contract/schema (or "N/A" if none)
+   - `{{CONVERSION_RULES}}` — rules from the migration catalog for this type
+   - `{{TEST_COMMAND}}` — actual test command for the target technology
+   - `{{MIGRATED_MARKER}}` — comment marker (e.g. "# MIGRATED: see src/typescript/...")
+
+   **migration-ci-converter.md placeholders:**
+   - `{{SOURCE_CI}}`, `{{TARGET_CI}}` — CI system names (e.g. "GitLab CI", "GitHub Actions")
+   - `{{SOURCE_CONFIG}}` — path to source CI config (e.g. ".gitlab-ci.yml")
+   - `{{TARGET_DIR}}` — directory for target CI configs (e.g. ".github/workflows/")
+   - `{{CONVERSION_MAP}}` — CI concept mapping table from the catalog
+   - `{{SECRETS_MIGRATION}}` — secrets migration approach (e.g. "GitLab CI/CD variables → GitHub Secrets")
+
+   **service-extractor.md placeholders:**
+   - `{{MONOLITH_NAME}}` — name of the monolith application
+   - `{{MONOLITH_DIR}}` — root directory of the monolith
+   - `{{SERVICES_DIR}}` — directory where extracted services live
+   - `{{SERVICE_NAME}}` — name of the service being extracted
+   - `{{BOUNDED_CONTEXT}}` — domain boundary being extracted
+   - `{{SHARED_DB}}` — shared database reference
+   - `{{COMMUNICATION_PATTERN}}` — inter-service communication pattern
+   - `{{DOMAIN_MAP}}` — path to the domain/services map document
+
+   **migration-infra.md placeholders:**
+   - `{{SOURCE_INFRA}}`, `{{TARGET_INFRA}}` — infrastructure platform names
+   - `{{SOURCE_CONFIG}}` — path to source infrastructure config
+   - `{{TARGET_DIR}}` — directory for target infrastructure configs
+   - `{{CONVERSION_RULES}}` — infrastructure-specific conversion rules from catalog
+   - `{{VALIDATION_COMMAND}}` — command to validate target configs
 
 4. **Generate migration safety rule**:
    ```markdown

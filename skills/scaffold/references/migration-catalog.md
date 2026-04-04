@@ -94,7 +94,7 @@ Authoritative reference for migration types, strategies, risk profiles, detectio
   - Add interfaces for object shapes
   - Convert `module.exports` to `export`
 - **Test Approach**: Tests work as-is, add type checking to CI
-- **Agent Config**: migration-converter (haiku — low complexity), ts-strictness rule
+- **Agent Config**: migration-converter (sonnet), ts-strictness rule
 
 ### Ruby → Go
 - **Typical Strategy**: strangler-fig

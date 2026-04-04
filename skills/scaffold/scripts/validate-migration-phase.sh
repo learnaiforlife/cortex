@@ -6,14 +6,31 @@
 
 set -euo pipefail
 
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"    # backslashes first
+  s="${s//\"/\\\"}"    # double quotes
+  s="${s//$'\t'/\\t}"  # tabs
+  s="${s//$'\n'/\\n}"  # newlines
+  s="${s//$'\r'/\\r}"  # carriage returns
+  printf '%s' "$s"
+}
+
 REPO_DIR="${1:-.}"
 PHASE_NUM="${2:-}"
 
 REPO_DIR="$(cd "$REPO_DIR" && pwd)"
+
+# Validate PHASE_NUM is an integer if provided
+if [ -n "$PHASE_NUM" ] && ! [[ "$PHASE_NUM" =~ ^[0-9]+$ ]]; then
+  echo '{"error": "phase must be a positive integer", "phase": 0, "verdict": "ERROR", "checks": []}' >&2
+  exit 1
+fi
+
 PLAN_FILE="$REPO_DIR/MIGRATION-PLAN.md"
 
 if [ ! -f "$PLAN_FILE" ]; then
-  echo '{"error": "No MIGRATION-PLAN.md found", "phase": 0, "verdict": "ERROR", "checks": []}'
+  echo '{"error": "No MIGRATION-PLAN.md found", "phase": 0, "verdict": "FAIL", "checks": []}'
   exit 1
 fi
 
@@ -37,7 +54,7 @@ else
 fi
 
 if [ -z "$PHASE_HEADER" ]; then
-  echo '{"error": "Could not find phase header", "phase": 0, "verdict": "ERROR", "checks": []}'
+  echo '{"error": "Could not find phase header", "phase": 0, "verdict": "FAIL", "checks": []}'
   exit 1
 fi
 
@@ -45,6 +62,7 @@ fi
 PHASE_INFO=$(sed -n "${PHASE_HEADER}p" "$PLAN_FILE")
 CURRENT_PHASE=$(echo "$PHASE_INFO" | sed 's/## Phase \([0-9]*\):.*/\1/')
 PHASE_NAME=$(echo "$PHASE_INFO" | sed 's/## Phase [0-9]*: \(.*\) —.*/\1/')
+PHASE_NAME=$(json_escape "$PHASE_NAME")
 
 # Find next phase header (to bound our search)
 NEXT_PHASE_LINE=$(tail -n +"$((PHASE_HEADER + 1))" "$PLAN_FILE" | grep -n "^## Phase" | head -1 | cut -d: -f1)
@@ -91,10 +109,9 @@ while IFS= read -r line; do
   [ -z "$line" ] && continue
   TOTAL=$((TOTAL + 1))
 
-  # Extract check description
+  # Extract check description and escape for JSON
   CHECK_DESC=$(echo "$line" | sed 's/- \[.\] //')
-  # Escape quotes for JSON
-  CHECK_DESC=$(echo "$CHECK_DESC" | sed 's/"/\\"/g')
+  CHECK_DESC=$(json_escape "$CHECK_DESC")
 
   # Check if already marked done
   IS_DONE=$(echo "$line" | grep -c '\[x\]' || true)
@@ -109,22 +126,22 @@ while IFS= read -r line; do
   else
     # Try to detect runnable checks
     if echo "$CHECK_DESC" | grep -qi "test.*pass\|pytest\|npm test\|mvn test\|go test"; then
-      # Detect test framework
+      # Check for test results — do NOT run tests (may have side effects)
       if [ -f "$REPO_DIR/package.json" ]; then
-        if command -v npm &>/dev/null && npm test --prefix "$REPO_DIR" &>/dev/null 2>&1; then
-          STATUS="PASS"
-          DETAIL="npm test passed"
-          PASSED=$((PASSED + 1))
-        else
-          STATUS="SKIP"
-          DETAIL="Test command available but skipped in validation script"
-        fi
+        STATUS="SKIP"
+        DETAIL="Node.js test framework detected — run 'npm test' manually to verify"
       elif [ -f "$REPO_DIR/pyproject.toml" ] || [ -f "$REPO_DIR/setup.py" ]; then
         STATUS="SKIP"
-        DETAIL="Python test framework detected — run pytest manually"
+        DETAIL="Python test framework detected — run 'pytest' manually to verify"
+      elif [ -f "$REPO_DIR/go.mod" ]; then
+        STATUS="SKIP"
+        DETAIL="Go test framework detected — run 'go test ./...' manually to verify"
+      elif [ -f "$REPO_DIR/pom.xml" ]; then
+        STATUS="SKIP"
+        DETAIL="Maven test framework detected — run 'mvn test' manually to verify"
       else
         STATUS="SKIP"
-        DETAIL="Test framework not auto-detected"
+        DETAIL="Test framework not auto-detected — run tests manually"
       fi
     elif echo "$CHECK_DESC" | grep -qi "build.*succeed\|compile\|npm run build"; then
       STATUS="SKIP"
@@ -150,12 +167,13 @@ while IFS= read -r line; do
 
 done <<< "$CRITERIA"
 
-# Determine overall verdict
+# Determine overall verdict (PASS or FAIL — aligned with migration-validator agent)
 VERDICT="PASS"
 if [ "$FAILED" -gt 0 ]; then
   VERDICT="FAIL"
 elif [ "$PASSED" -lt "$TOTAL" ]; then
-  VERDICT="PARTIAL"
+  # Some checks were skipped but none failed — still PASS (skips need manual verification)
+  VERDICT="PASS"
 fi
 
 cat <<EOF

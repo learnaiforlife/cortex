@@ -13,6 +13,16 @@ REPO_DIR="$(cd "$REPO_DIR" && pwd)"
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"    # backslashes first
+  s="${s//\"/\\\"}"    # double quotes
+  s="${s//$'\t'/\\t}"  # tabs
+  s="${s//$'\n'/\\n}"  # newlines
+  s="${s//$'\r'/\\r}"  # carriage returns
+  printf '%s' "$s"
+}
+
 count_files() {
   local pattern="$1"
   find "$REPO_DIR" -name "$pattern" -not -path "*/node_modules/*" -not -path "*/.git/*" -not -path "*/vendor/*" -not -path "*/dist/*" -not -path "*/__pycache__/*" -not -path "*/target/*" 2>/dev/null | wc -l | tr -d ' '
@@ -35,6 +45,7 @@ json_array_from_files() {
   while IFS= read -r f; do
     [ -z "$f" ] && continue
     local rel="${f#$REPO_DIR/}"
+    rel=$(json_escape "$rel")
     if [ "$first" = true ]; then
       first=false
     else
@@ -58,7 +69,8 @@ detect_language_migrations() {
     local pyproj=$(file_exists "pyproject.toml")
     local conf=0.6
     [ -n "$pom" ] && [ -n "$pyproj" ] && conf=0.85
-    migrations="${migrations}{\"category\":\"language\",\"from\":\"Python\",\"to\":\"Java\",\"confidence\":$conf,\"signals\":[{\"type\":\"file_coexistence\",\"detail\":\"$py_count .py files + $java_count .java files\"}]},"
+    local detail=$(json_escape "$py_count .py files + $java_count .java files")
+    migrations="${migrations}{\"category\":\"language\",\"from\":\"Python\",\"to\":\"Java\",\"confidence\":$conf,\"signals\":[{\"type\":\"file_coexistence\",\"detail\":\"$detail\"}]},"
   fi
 
   # Python + TypeScript coexistence
@@ -70,7 +82,8 @@ detect_language_migrations() {
     local pkg=$(file_exists "package.json")
     local pyproj=$(file_exists "pyproject.toml")
     [ -n "$pkg" ] && [ -n "$pyproj" ] && conf=0.7
-    migrations="${migrations}{\"category\":\"language\",\"from\":\"Python\",\"to\":\"TypeScript\",\"confidence\":$conf,\"signals\":[{\"type\":\"file_coexistence\",\"detail\":\"$py_count .py files + $total_ts .ts/.tsx files\"}]},"
+    local detail=$(json_escape "$py_count .py files + $total_ts .ts/.tsx files")
+    migrations="${migrations}{\"category\":\"language\",\"from\":\"Python\",\"to\":\"TypeScript\",\"confidence\":$conf,\"signals\":[{\"type\":\"file_coexistence\",\"detail\":\"$detail\"}]},"
   fi
 
   # JavaScript → TypeScript
@@ -79,14 +92,16 @@ detect_language_migrations() {
   local total_js=$((js_count + jsx_count))
   local tsconfig=$(file_exists "tsconfig.json")
   if [ "$total_js" -gt 5 ] && [ "$total_ts" -gt 5 ] && [ -n "$tsconfig" ]; then
-    migrations="${migrations}{\"category\":\"language\",\"from\":\"JavaScript\",\"to\":\"TypeScript\",\"confidence\":0.80,\"signals\":[{\"type\":\"file_coexistence\",\"detail\":\"$total_js .js/.jsx + $total_ts .ts/.tsx with tsconfig.json\"}]},"
+    local detail=$(json_escape "$total_js .js/.jsx + $total_ts .ts/.tsx with tsconfig.json")
+    migrations="${migrations}{\"category\":\"language\",\"from\":\"JavaScript\",\"to\":\"TypeScript\",\"confidence\":0.80,\"signals\":[{\"type\":\"file_coexistence\",\"detail\":\"$detail\"}]},"
   fi
 
   # Ruby + Go coexistence
   local rb_count=$(count_files "*.rb")
   local go_count=$(count_files "*.go")
   if [ "$rb_count" -gt 3 ] && [ "$go_count" -gt 3 ]; then
-    migrations="${migrations}{\"category\":\"language\",\"from\":\"Ruby\",\"to\":\"Go\",\"confidence\":0.60,\"signals\":[{\"type\":\"file_coexistence\",\"detail\":\"$rb_count .rb files + $go_count .go files\"}]},"
+    local detail=$(json_escape "$rb_count .rb files + $go_count .go files")
+    migrations="${migrations}{\"category\":\"language\",\"from\":\"Ruby\",\"to\":\"Go\",\"confidence\":0.60,\"signals\":[{\"type\":\"file_coexistence\",\"detail\":\"$detail\"}]},"
   fi
 
   echo "$migrations"
@@ -108,7 +123,8 @@ detect_framework_migrations() {
   local django_imports=$(grep_count "from django\|import django")
   local fastapi_imports=$(grep_count "from fastapi\|import fastapi")
   if [ "$django_imports" -gt 0 ] && [ "$fastapi_imports" -gt 0 ]; then
-    migrations="${migrations}{\"category\":\"framework\",\"from\":\"Django\",\"to\":\"FastAPI\",\"confidence\":0.75,\"signals\":[{\"type\":\"import_coexistence\",\"detail\":\"Django imports ($django_imports files) + FastAPI imports ($fastapi_imports files)\"}]},"
+    local detail=$(json_escape "Django imports ($django_imports files) + FastAPI imports ($fastapi_imports files)")
+    migrations="${migrations}{\"category\":\"framework\",\"from\":\"Django\",\"to\":\"FastAPI\",\"confidence\":0.75,\"signals\":[{\"type\":\"import_coexistence\",\"detail\":\"$detail\"}]},"
   fi
 
   # Create React App → Vite/Next
@@ -143,7 +159,8 @@ detect_architecture_migrations() {
   if [ -n "$services_dir" ] && [ -n "$docker_compose" ]; then
     local svc_count=$(find "$services_dir" -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
     if [ "$svc_count" -gt 2 ]; then
-      migrations="${migrations}{\"category\":\"architecture\",\"from\":\"monolith\",\"to\":\"microservices\",\"confidence\":0.65,\"signals\":[{\"type\":\"structure\",\"detail\":\"services/ dir with $svc_count subdirs + docker-compose\"}]},"
+      local detail=$(json_escape "services/ dir with $svc_count subdirs + docker-compose")
+      migrations="${migrations}{\"category\":\"architecture\",\"from\":\"monolith\",\"to\":\"microservices\",\"confidence\":0.65,\"signals\":[{\"type\":\"structure\",\"detail\":\"$detail\"}]},"
     fi
   fi
 
@@ -168,10 +185,12 @@ detect_cloud_migrations() {
   local gcp_tf=$(grep_count "provider.*google\|google_")
   local azure_tf=$(grep_count "provider.*azurerm\|azurerm_")
   if [ "$aws_tf" -gt 0 ] && [ "$gcp_tf" -gt 0 ]; then
-    migrations="${migrations}{\"category\":\"cloud\",\"from\":\"AWS\",\"to\":\"GCP\",\"confidence\":0.75,\"signals\":[{\"type\":\"iac_coexistence\",\"detail\":\"AWS ($aws_tf refs) + GCP ($gcp_tf refs) in Terraform\"}]},"
+    local detail=$(json_escape "AWS ($aws_tf refs) + GCP ($gcp_tf refs) in Terraform")
+    migrations="${migrations}{\"category\":\"cloud\",\"from\":\"AWS\",\"to\":\"GCP\",\"confidence\":0.75,\"signals\":[{\"type\":\"iac_coexistence\",\"detail\":\"$detail\"}]},"
   fi
   if [ "$aws_tf" -gt 0 ] && [ "$azure_tf" -gt 0 ]; then
-    migrations="${migrations}{\"category\":\"cloud\",\"from\":\"AWS\",\"to\":\"Azure\",\"confidence\":0.75,\"signals\":[{\"type\":\"iac_coexistence\",\"detail\":\"AWS ($aws_tf refs) + Azure ($azure_tf refs) in Terraform\"}]},"
+    local detail=$(json_escape "AWS ($aws_tf refs) + Azure ($azure_tf refs) in Terraform")
+    migrations="${migrations}{\"category\":\"cloud\",\"from\":\"AWS\",\"to\":\"Azure\",\"confidence\":0.75,\"signals\":[{\"type\":\"iac_coexistence\",\"detail\":\"$detail\"}]},"
   fi
 
   echo "$migrations"
@@ -212,7 +231,7 @@ detect_infra_migrations() {
 
   # Docker Compose → Kubernetes
   local compose=$(file_exists "docker-compose*.yml")
-  local k8s_dir=$(find "$REPO_DIR" -maxdepth 2 -type d -name "kubernetes" -o -name "k8s" 2>/dev/null | head -1)
+  local k8s_dir=$(find "$REPO_DIR" -maxdepth 2 -type d \( -name "kubernetes" -o -name "k8s" \) 2>/dev/null | head -1)
   local helm=$(file_exists "Chart.yaml")
   if [ -n "$compose" ] && { [ -n "$k8s_dir" ] || [ -n "$helm" ]; }; then
     migrations="${migrations}{\"category\":\"infrastructure\",\"from\":\"Docker Compose\",\"to\":\"Kubernetes\",\"confidence\":0.80,\"signals\":[{\"type\":\"config_coexistence\",\"detail\":\"docker-compose + kubernetes manifests\"}]},"
@@ -252,7 +271,8 @@ detect_toolchain_migrations() {
   if [ -n "$grunt" ] && { [ -n "$vite" ] || [ -n "$rollup" ]; }; then
     local to_tool="Vite"
     [ -n "$rollup" ] && to_tool="Rollup"
-    migrations="${migrations}{\"category\":\"toolchain\",\"from\":\"Grunt\",\"to\":\"$to_tool\",\"confidence\":0.80,\"signals\":[{\"type\":\"config_coexistence\",\"detail\":\"Gruntfile + modern bundler config\"}]},"
+    local esc_tool=$(json_escape "$to_tool")
+    migrations="${migrations}{\"category\":\"toolchain\",\"from\":\"Grunt\",\"to\":\"$esc_tool\",\"confidence\":0.80,\"signals\":[{\"type\":\"config_coexistence\",\"detail\":\"Gruntfile + modern bundler config\"}]},"
   fi
 
   echo "$migrations"
@@ -271,9 +291,12 @@ detect_ai_tool_migrations() {
     migrations="${migrations}{\"category\":\"ai-tools\",\"from\":\"Cursor-only\",\"to\":\"Multi-tool\",\"confidence\":0.70,\"signals\":[{\"type\":\"config_presence\",\"detail\":\".cursor/ exists without .claude/ or CLAUDE.md\"}]},"
   fi
 
-  # No AI config at all
+  # No AI config at all — only if the repo has actual source files (not empty/blank)
   if [ -z "$cursor_dir" ] && [ -z "$claude_dir" ] && [ -z "$claude_md" ]; then
-    migrations="${migrations}{\"category\":\"ai-tools\",\"from\":\"None\",\"to\":\"AI-assisted\",\"confidence\":0.90,\"signals\":[{\"type\":\"config_absence\",\"detail\":\"No .cursor/, .claude/, or CLAUDE.md found\"}]},"
+    local src_file_count=$(find "$REPO_DIR" -maxdepth 3 -type f \( -name "*.py" -o -name "*.js" -o -name "*.ts" -o -name "*.java" -o -name "*.go" -o -name "*.rb" -o -name "*.rs" -o -name "*.c" -o -name "*.cpp" -o -name "*.cs" \) -not -path "*/.git/*" -not -path "*/node_modules/*" 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$src_file_count" -gt 0 ]; then
+      migrations="${migrations}{\"category\":\"ai-tools\",\"from\":\"None\",\"to\":\"AI-assisted\",\"confidence\":0.90,\"signals\":[{\"type\":\"config_absence\",\"detail\":\"No .cursor/, .claude/, or CLAUDE.md found\"}]},"
+    fi
   fi
 
   echo "$migrations"
@@ -298,6 +321,7 @@ detect_migration_docs() {
   while IFS= read -r f; do
     [ -z "$f" ] && continue
     local rel="${f#$REPO_DIR/}"
+    rel=$(json_escape "$rel")
     if [ "$first" = true ]; then
       first=false
     else
@@ -339,7 +363,9 @@ detect_dual_configs() {
       else
         pairs="${pairs}, "
       fi
-      pairs="${pairs}[\"$f1\", \"$f2\"]"
+      local esc_f1=$(json_escape "$f1")
+      local esc_f2=$(json_escape "$f2")
+      pairs="${pairs}[\"$esc_f1\", \"$esc_f2\"]"
     fi
   done
 
@@ -375,11 +401,13 @@ fi
 # Count deprecation markers
 dep_count=$(echo "$comment_markers" | sed 's/.*"deprecated":\([0-9]*\).*/\1/')
 
+esc_repo_dir=$(json_escape "$REPO_DIR")
+
 cat <<EOF
 {
   "detected": $detected,
   "scannedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  "repoDir": "$REPO_DIR",
+  "repoDir": "$esc_repo_dir",
   "migrations": [$all_migrations],
   "migrationDocs": $migration_docs,
   "commentMarkers": $comment_markers,
