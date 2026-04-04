@@ -252,7 +252,12 @@ log "Complete: installed=$INSTALL_COUNT failed=$FAIL_COUNT skipped=$SKIP_COUNT r
 # Build JSON report using python3 — pass results via temp file to avoid injection
 RESULTS_FILE=$(mktemp)
 trap 'rm -f "$RESULTS_FILE"' EXIT
-printf '%s\n' "${RESULTS[@]}" > "$RESULTS_FILE"
+# Guard: empty RESULTS array causes "unbound variable" in bash < 4.4
+if [ ${#RESULTS[@]} -gt 0 ]; then
+  printf '%s\n' "${RESULTS[@]}" > "$RESULTS_FILE"
+else
+  : > "$RESULTS_FILE"
+fi
 
 DRY_RUN_PY=$( [ "$DRY_RUN" = true ] && echo 'True' || echo 'False' )
 

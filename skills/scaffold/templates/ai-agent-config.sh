@@ -6,9 +6,25 @@
 # Documentation: https://medium.com/@karkeralathesh/the-hidden-cli-tools-that-make-ai-coding-agents-10x-faster
 #
 # This template auto-detects your shell and outputs the correct syntax.
+#
 # Usage:
-#   source <(bash ai-agent-config.sh)        # apply to current session
-#   bash ai-agent-config.sh >> ~/.zshrc       # persist permanently
+#   bash ai-agent-config.sh                  # preview config to stdout
+#   source <(bash ai-agent-config.sh)        # apply to current session only
+#   bash ai-agent-config.sh --append         # safely append to shell profile
+#                                            # (idempotent — skips if already present)
+#
+# The --append flag detects your profile file, checks for the sentinel marker
+# "# BEGIN Cortex AI Agent Config", and only appends if not already present.
+# A backup of your profile is created before any modification.
+
+set -euo pipefail
+
+# ---------------------------------------------------------------------------
+# Sentinel markers used to detect prior appends and enable clean removal
+# ---------------------------------------------------------------------------
+
+SENTINEL_BEGIN="# BEGIN Cortex AI Agent Config"
+SENTINEL_END="# END Cortex AI Agent Config"
 
 # ---------------------------------------------------------------------------
 # Shell detection
@@ -17,6 +33,51 @@
 CURRENT_SHELL="$(basename "${SHELL:-/bin/bash}")"
 
 is_fish() { [ "$CURRENT_SHELL" = "fish" ]; }
+
+# ---------------------------------------------------------------------------
+# --append mode: safely append config to the user's shell profile
+# ---------------------------------------------------------------------------
+
+if [ "${1:-}" = "--append" ]; then
+  # Determine the correct profile file
+  if is_fish; then
+    PROFILE="$HOME/.config/fish/config.fish"
+  elif [ "$CURRENT_SHELL" = "zsh" ]; then
+    PROFILE="$HOME/.zshrc"
+  else
+    PROFILE="$HOME/.bashrc"
+  fi
+
+  # Guard: skip if sentinel already present (idempotent)
+  if [ -f "$PROFILE" ] && grep -qF "$SENTINEL_BEGIN" "$PROFILE" 2>/dev/null; then
+    echo "Cortex config already present in $PROFILE — skipping (idempotent)."
+    echo "To update, first remove the block between '$SENTINEL_BEGIN' and '$SENTINEL_END'."
+    exit 0
+  fi
+
+  # Ensure parent directory exists (needed for fish: ~/.config/fish/)
+  mkdir -p "$(dirname "$PROFILE")"
+
+  # Backup the profile before modifying it
+  if [ -f "$PROFILE" ]; then
+    BACKUP="${PROFILE}.cortex-backup-$(date +%Y%m%d-%H%M%S)"
+    cp "$PROFILE" "$BACKUP"
+    echo "Backed up $PROFILE → $BACKUP"
+  fi
+
+  # Generate config and wrap it in sentinel markers
+  CONFIG=$("$0")  # re-invoke self without --append to capture output
+  {
+    echo ""
+    echo "$SENTINEL_BEGIN"
+    echo "$CONFIG"
+    echo "$SENTINEL_END"
+  } >> "$PROFILE"
+
+  echo "Cortex config appended to $PROFILE"
+  echo "Restart your shell or run: source $PROFILE"
+  exit 0
+fi
 
 # Helper: emit an export line in the right syntax
 emit_export() {
