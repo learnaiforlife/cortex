@@ -6,7 +6,7 @@ AI development scaffolding plugin for Claude Code, Cursor, and Codex. Analyzes a
 
 **Tech Stack**: Bash (scripts), Python 3.10+ (autoresearch loop), Markdown (all configuration)
 **Plugin System**: Claude Code skills + commands + hooks
-**Version**: 0.2.0
+**Version**: See `VERSION` and `.claude-plugin/plugin.json` (currently not aligned)
 
 ## Architecture
 
@@ -14,8 +14,8 @@ AI development scaffolding plugin for Claude Code, Cursor, and Codex. Analyzes a
 
 ```
 cortex/
-  skills/scaffold/             # Main skill -- master orchestrator (SKILL.md, 816 LOC)
-    agents/                    # 11 specialized subagents
+  skills/scaffold/             # Main skill -- master orchestrator (SKILL.md, 962 LOC)
+    agents/                    # 13 specialized subagents
       repo-analyzer.md         # Deep codebase exploration (architecture, patterns, commands)
       skill-recommender.md     # Official plugins first, custom skills for gaps
       quality-reviewer.md      # Format validation + content review (PASS/FAIL gate)
@@ -27,13 +27,17 @@ cortex/
       scaffold-improver.md     # Targeted regeneration for weak dimensions
       skill-improver.md        # SKILL.md edit proposals (autoresearch)
       variant-dispatcher.md    # Extract conditional logic into variant files
-    scripts/                   # 15 bash utility scripts
+      opportunity-detector.md  # Suggests subagents/skills/integrations per repo
+      integration-subagent-gen.md # Fills integration templates + MCP entries
+    scripts/                   # 16 bash utility scripts
       analyze.sh               # Heuristic pre-scan -> ProjectProfile JSON
+      detect-opportunities.sh  # Detects subagent/skill/integration opportunities
       score.sh                 # Quantitative scoring (0-100, 4 dimensions)
-      run-skill-evals.sh       # Assertion-based eval runner (14 cases)
+      run-skill-evals.sh       # Assertion-based eval runner (18 cases)
       auto-improve.sh          # Autoresearch loop orchestrator
       validate.sh              # Format validation
       log-result.sh            # Append-only TSV logger
+      audit-existing.sh        # Existing setup inventory for audit mode
       discover-orchestrator.sh # Machine-wide discovery engine
       discover-projects.sh     # Git repo scanner
       discover-tools.sh        # Tool detection (node, python, go, etc.)
@@ -42,7 +46,7 @@ cortex/
       discover-company.sh      # Company context detection
       log-discover.sh          # DeveloperDNA logger
       schedule-autorun.sh      # Cron automation setup
-    references/                # 7 reference catalogs
+    references/                # 10 reference catalogs
       official-plugins-catalog.md  # Plugin registry with trigger signals
       mcp-catalog.md              # MCP server registry with configs
       claude-code-formats.md      # Claude Code file format specs
@@ -50,12 +54,15 @@ cortex/
       codex-formats.md            # Codex file format specs
       user-level-formats.md       # User-level setup formats
       discover-integration-catalog.md # Integration detection signals
+      soft-skills-catalog.md      # Productivity skill templates and metadata
+      subagent-templates-catalog.md # Template-driven subagent catalog
+      integration-subagents-catalog.md # Integration subagent catalog
     variants/                  # Specialized repo-type handlers
       dispatch-table.json      # Variant routing config (signals, priority)
       SKILL-monorepo.md        # Monorepo handling (turbo/nx/lerna/pnpm)
       SKILL-minimal.md         # Minimal project handling (<= 10 files)
     evals/
-      evals.json               # 14 test cases with assertions
+      evals.json               # 18 test cases with assertions
   claude-code-auto-research/   # Python autoresearch loop
     run.py                     # Autonomous optimization engine
     measure.py                 # Scoring + grading logic
@@ -116,7 +123,7 @@ codex-specialist (AGENTS.md generation)
 ./install.sh                                          # Install to ~/.claude/skills/scaffold/
 
 # Testing & Quality
-bash skills/scaffold/scripts/run-skill-evals.sh       # Run all 14 eval cases
+bash skills/scaffold/scripts/run-skill-evals.sh       # Run all 18 eval cases
 bash skills/scaffold/scripts/score.sh <output-dir>    # Score scaffold output (0-100 JSON)
 bash skills/scaffold/scripts/validate.sh <output-dir> # Format validation
 
@@ -138,7 +145,7 @@ bash skills/scaffold/scripts/schedule-autorun.sh setup # Setup weekly/monthly au
 
 ### Code Style
 
-- Shell scripts use `set -e` for fail-fast behavior
+- Shell scripts use strict mode (`set -euo pipefail` or `set -uo pipefail`)
 - All scripts are bash (no zsh or other shells)
 - Python code requires Python 3.10+ (autoresearch loop only)
 - All markdown files use ATX headers (`#`, not underlines)
@@ -193,7 +200,7 @@ bash skills/scaffold/scripts/schedule-autorun.sh setup # Setup weekly/monthly au
 
 - Add to `skills/scaffold/evals/evals.json`
 - Include: name, fixture, expectations (human intent), assertions (machine checks)
-- 11 assertion types available (file_exists, file_contains, score_min, etc.)
+- 15 assertion types available (`file_exists`, `file_contains`, `score_min`, etc.)
 - Verify new evals pass against current SKILL.md before committing
 
 ### File Protection

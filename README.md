@@ -159,7 +159,12 @@ cd cortex
 
 ## Status
 
-**v0.3.0** — Interactive scaffold with smart suggestions, model routing, and integration detection. Tested against 3 fixture projects and 3 OSS repos (shadcn-ui, FastAPI, Express). Eval suite: 100% pass rate (52/52 assertions). Autoresearch baseline: 97.3/100.
+Interactive scaffold with smart suggestions, model routing, and integration detection. Tested against 3 fixture projects and 3 OSS repos (shadcn-ui, FastAPI, Express).
+
+Version metadata note:
+- `VERSION` currently reports `0.2.0`
+- `.claude-plugin/plugin.json` currently reports `1.0.0`
+- These should be aligned in the next release pass
 
 Contributions and feedback welcome.
 

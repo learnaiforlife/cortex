@@ -44,7 +44,7 @@ bash skills/scaffold/scripts/score.sh /path/to/scaffolded-repo
 
 **Autoresearch equivalent**: The fixed evaluation contract — `evaluate_bpb` is immutable, the agent cannot redefine what "good" means.
 
-**What it does**: Reads machine-verifiable assertions from `evals/evals.json` and checks them against scaffold output. Supports 11 assertion types:
+**What it does**: Reads machine-verifiable assertions from `evals/evals.json` and checks them against scaffold output. Supports 15 assertion types:
 
 | Assertion type | What it checks |
 |---------------|---------------|
@@ -55,9 +55,13 @@ bash skills/scaffold/scripts/score.sh /path/to/scaffolded-repo
 | `file_min_size` | File is at least N bytes |
 | `max_file_count` | Total generated files don't exceed N |
 | `frontmatter_absent` | File has no YAML frontmatter (for AGENTS.md) |
+| `frontmatter_field` | YAML frontmatter field equals an expected value |
 | `no_skill_named` | No skill directory matches a forbidden pattern |
 | `no_placeholder_in_dir` | No placeholder text in any file under a directory |
 | `score_min` | Scaffold score meets a minimum threshold |
+| `script_output_valid_json` | Script output parses as valid JSON |
+| `no_placeholders` | No `{{PLACEHOLDER}}` tokens in generated `.claude` files |
+| `file_not_exists` | A specific file must not exist |
 | `output_contains` | CLI output matches a pattern (skipped in file-based mode) |
 
 **Usage**:
@@ -206,7 +210,7 @@ bash skills/scaffold/scripts/log-result.sh /path/to/repo success "Scaffolded nex
 |------|-------------|
 | `SKILL.md` | Added Step 6B (iterative improvement), Step 9 (score/log), Auto-Improve Mode, Error Recovery section |
 | `agents/quality-reviewer.md` | Numeric scoring output, dimension breakdown, scoring guide |
-| `scripts/run-skill-evals.sh` | Full rewrite: placeholder -> assertion engine with 11 assertion types |
+| `scripts/run-skill-evals.sh` | Full rewrite: placeholder -> assertion engine with 15 assertion types |
 | `evals/evals.json` | Added `assertions` array to each eval case with machine-checkable checks |
 | `commands/scaffold-optimize.md` | Added `auto-improve` sub-command |
 | `README.md` | Updated architecture section, added scripts reference table |

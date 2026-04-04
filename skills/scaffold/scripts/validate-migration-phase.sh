@@ -187,7 +187,7 @@ while IFS= read -r line; do
   else
     CHECKS="${CHECKS},"
   fi
-  CHECKS="${CHECKS}{\"name\":\"$CHECK_DESC\",\"status\":\"$STATUS\",\"detail\":\"$DETAIL\"}"
+  CHECKS="${CHECKS}{\"name\":\"$(json_escape "$CHECK_DESC")\",\"status\":\"$STATUS\",\"detail\":\"$(json_escape "$DETAIL")\"}"
 
 done <<< "$CRITERIA"
 
@@ -195,15 +195,17 @@ done <<< "$CRITERIA"
 VERDICT="PASS"
 if [ "$FAILED" -gt 0 ]; then
   VERDICT="FAIL"
-elif [ "$PASSED" -lt "$TOTAL" ]; then
-  # Some checks were skipped but none failed — still PASS (skips need manual verification)
-  VERDICT="PASS"
+elif [ "$PASSED" -lt "$TOTAL" ] && [ "$PASSED" -gt 0 ]; then
+  # Some checks passed with caveats (skipped items need manual verification)
+  VERDICT="WARN"
+elif [ "$PASSED" -eq 0 ] && [ "$TOTAL" -gt 0 ]; then
+  VERDICT="FAIL"
 fi
 
 cat <<EOF
 {
   "phase": $CURRENT_PHASE,
-  "phaseName": "$PHASE_NAME",
+  "phaseName": "$(json_escape "$PHASE_NAME")",
   "verdict": "$VERDICT",
   "checks": [$CHECKS],
   "summary": "$PASSED/$TOTAL checks passed, $((TOTAL - PASSED)) need manual verification"

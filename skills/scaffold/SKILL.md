@@ -47,6 +47,7 @@ Before mode routing, extract flags from `$ARGUMENTS`:
 
 Determine the mode from `$ARGUMENTS` (after flag stripping):
 
+- If `$ARGUMENTS` starts with **"toolbox"** --> jump to [Toolbox Mode](#toolbox-mode)
 - If `$ARGUMENTS` starts with **"discover"** --> jump to [Discover Mode](#discover-mode)
 - If `$ARGUMENTS` is exactly **"audit"** --> jump to [Audit Mode](#audit-mode)
 - If `$ARGUMENTS` is exactly **"optimize"** --> jump to [Optimize Mode](#optimize-mode)
@@ -102,6 +103,12 @@ Dispatch the **opportunity-detector** subagent to analyze the repo and environme
 - IMPORTANT: Resolve `${CLAUDE_SKILL_DIR}` to an absolute path before passing to the subagent.
 
 Store the result as SUGGESTION_MANIFEST.
+
+**In parallel**, run CLI tool detection for the summary:
+```bash
+bash "${CLAUDE_SKILL_DIR}/scripts/detect-cli-tools.sh" "${REPO_DIR}"
+```
+Store the JSON output as `CLI_TOOL_DETECTION`. This does NOT block scaffold generation — it only adds an informational section to Step 8.
 
 If SUGGESTION_MANIFEST has zero suggestions across all categories (empty subagents, no productivity skills, no integrations), skip Steps 2.6 and 2.7 — there is nothing to select. Set FILTERED_MANIFEST to empty and proceed to Step 3.
 
@@ -500,6 +507,15 @@ Integrations: X/Y selected (Z%) — skipped: [list]
 - [ ] [install recommended plugins]
 - ...
 
+### CLI Tools for AI Agents
+If CLI_TOOL_DETECTION from Step 2.5 shows essential tools missing, include:
+  ⚡ N essential CLI tools missing that speed up AI agents.
+  Missing: [tool1], [tool2], ...
+  Run /scaffold-toolbox to detect, recommend, and install.
+
+If all essential tools are present, show:
+  ✓ All essential CLI tools installed (ripgrep, fd, gh, jq)
+
 ### Running Your Setup
 Start a new Claude Code session in this project directory. Claude will automatically
 read CLAUDE.md and discover agents, skills, and rules.
@@ -826,6 +842,160 @@ When scaffolding multiple repos in sequence (e.g., from a list of URLs), follow 
 Total: [n] repos, [n] success, [n] partial, [n] crash
 Results log: ~/.cortex/scaffold-results.tsv
 ```
+
+---
+
+## Toolbox Mode
+
+When `$ARGUMENTS` starts with "toolbox", detect, recommend, and optionally install CLI tools that accelerate AI coding agents. CLIs are the native interface for AI agents — they compose naturally and produce structured output that agents consume directly.
+
+### Sub-mode Routing
+
+Strip "toolbox" from `$ARGUMENTS`. Determine sub-mode from the remainder:
+
+- If empty or **"recommend"** → Recommend Mode (default)
+- If **"install"** → Install Mode (detect + install all recommended)
+- If **"audit"** → Audit Mode (check for outdated tools and conflicts)
+- If **"configure"** → Configure Mode (AI agent env vars only)
+
+### Step T1: Detect Installed Tools
+
+Run the detection script against the current repo:
+
+```bash
+bash "${CLAUDE_SKILL_DIR}/scripts/detect-cli-tools.sh" "$(pwd)"
+```
+
+Store the JSON output as `TOOL_DETECTION`. This provides:
+- Platform and package manager
+- Repo context (which ecosystems are relevant)
+- Per-category tool status (installed/missing with versions)
+- AI agent config state (USE_BUILTIN_RIPGREP, etc.)
+
+### Step T2: Generate Recommendations
+
+Dispatch the **toolbox-recommender** subagent:
+
+- Pass `REPO_DIR` as `$(pwd)`
+- Pass `SCRIPT_DIR` as `${CLAUDE_SKILL_DIR}/scripts`
+- Pass `CATALOG_PATH` as `${CLAUDE_SKILL_DIR}/references/cli-tools-catalog.md`
+
+The subagent:
+1. Runs detection, reads the catalog
+2. Scores each missing tool (agent impact 40%, project relevance 30%, ecosystem fit 20%, install ease 10%)
+3. Resolves conflicts (biome vs eslint+prettier, ruff vs black+isort, etc.)
+4. Returns a ToolboxManifest JSON with `installed[]`, `recommended[]`, `aiConfigActions[]`, `conflicts[]`
+
+### Step T3: Present Recommendations
+
+Display a grouped, prioritized recommendation screen:
+
+```
+## CLI Tools for AI Agent Acceleration
+
+### Currently Installed ({N} tools)
+  ✓ ripgrep 14.1.0  — Fast regex search (agent impact: 10/10)
+  ✓ fd 10.0.0       — Fast file finder (agent impact: 9/10)
+  ✓ gh 2.44.0       — GitHub CLI (agent impact: 10/10)
+  ...
+
+### Essential — Missing ({N} tools)
+  [1*] jq              — JSON processor for CLI pipelines (score: 92)
+       Install: brew install jq
+  [2*] ast-grep        — AST-aware code search (score: 88)
+       Install: brew install ast-grep
+  ...
+
+### Recommended for This Project ({language})
+  [3*] biome           — Fast lint+format, replaces eslint+prettier (score: 85)
+       Install: npm install -g @biomejs/biome
+  [4]  oxlint          — Ultra-fast supplementary linter (score: 72)
+       Install: npm install -g oxlint
+  ...
+
+### AI Agent Configuration
+  [C1] Set USE_BUILTIN_RIPGREP=0 in ~/.zshrc
+       Why: Use system ripgrep (2-5x faster) instead of bundled version
+
+* = pre-selected
+
+Install all recommended? [Yes / Pick specific / Configure only / Skip]
+```
+
+- **If sub-mode is "recommend"**: Stop here after presenting. Let the user decide.
+- **If sub-mode is "install"**: Auto-select all essential + recommended tools and proceed to Step T4.
+
+### Step T4: Installation
+
+If the user selects tools (or sub-mode is "install"):
+
+1. Build an install manifest JSON file from selected tools (array of `{id, installCommand, verifyCommand}` objects).
+2. **Dry-run first** — always show what will happen:
+   ```bash
+   bash "${CLAUDE_SKILL_DIR}/scripts/install-cli-tools.sh" /tmp/cortex-install-manifest.json --dry-run
+   ```
+3. Present the dry-run output to the user. Ask for confirmation.
+4. **After user confirms** — execute:
+   ```bash
+   bash "${CLAUDE_SKILL_DIR}/scripts/install-cli-tools.sh" /tmp/cortex-install-manifest.json --yes
+   ```
+5. Present the install report (installed, failed, skipped, rejected).
+
+**Security**: The install script validates every command against an allowlist. It rejects any command that does not start with an approved prefix (brew install, sudo apt install, npm install -g, pip install, cargo install, etc.). It never runs `curl | sh` or similar piped installs.
+
+### Step T5: Configuration
+
+For each AI agent config action in the ToolboxManifest:
+
+1. Show the user what will be added:
+   ```
+   Will append to ~/.zshrc:
+     export USE_BUILTIN_RIPGREP=0
+   ```
+2. After user confirms, append the line(s) to the shell profile.
+3. Remind the user: "Run `source ~/.zshrc` or restart your shell for changes to take effect."
+
+### Step T6: Summary
+
+Present a final summary:
+
+```
+## Toolbox Summary
+
+Installed: {N} new tools
+  - fd 10.0.0 (brew install fd)
+  - ast-grep 0.25.0 (brew install ast-grep)
+
+Failed: {N}
+  - [tool]: [error]
+
+Configured:
+  - USE_BUILTIN_RIPGREP=0 added to ~/.zshrc
+
+Previously installed: {N} tools up to date
+
+Run /scaffold-toolbox audit anytime to check for updates.
+```
+
+### Audit Sub-mode
+
+When sub-mode is "audit":
+1. Run Step T1 (detection)
+2. Compare installed versions against the catalog's recommended versions
+3. Report:
+   - Missing essential tools
+   - Outdated tools (installed but old)
+   - Conflicting tools (e.g., both eslint and biome installed)
+   - AI config gaps (env vars not set)
+4. No installation — information only
+
+### Configure Sub-mode
+
+When sub-mode is "configure":
+1. Run Step T1 (detection) — only the `aiAgentConfig` section matters
+2. Check which AI agent env vars are not set
+3. Show recommended additions and ask for confirmation
+4. Execute Step T5
 
 ---
 

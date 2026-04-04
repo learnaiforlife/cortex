@@ -61,6 +61,9 @@ PID_SERVICES=$!
 bash "$SCRIPT_DIR/discover-integrations.sh" > "$TMPDIR_DISCOVER/integrations.json" 2>"$TMPDIR_DISCOVER/integrations.err" &
 PID_INTEGRATIONS=$!
 
+bash "$SCRIPT_DIR/detect-cli-tools.sh" > "$TMPDIR_DISCOVER/cli-tools.json" 2>"$TMPDIR_DISCOVER/cli-tools.err" &
+PID_CLI_TOOLS=$!
+
 # Wait for all parallel jobs
 wait $PID_PROJECTS 2>/dev/null
 echo "  Projects:     done" >&2
@@ -70,6 +73,8 @@ wait $PID_SERVICES 2>/dev/null
 echo "  Services:     done" >&2
 wait $PID_INTEGRATIONS 2>/dev/null
 echo "  Integrations: done" >&2
+wait $PID_CLI_TOOLS 2>/dev/null
+echo "  CLI Tools:    done" >&2
 
 # --- Phase 2: Run company detection (depends on projects output) ---
 echo "Phase 2: Analyzing company signals..." >&2
@@ -105,6 +110,7 @@ tools = load_json(os.path.join(tmpdir, 'tools.json'), {})
 services = load_json(os.path.join(tmpdir, 'services.json'), {})
 integrations = load_json(os.path.join(tmpdir, 'integrations.json'), {})
 company = load_json(os.path.join(tmpdir, 'company.json'), {})
+cli_tools = load_json(os.path.join(tmpdir, 'cli-tools.json'), {})
 
 # --- Compute cross-project patterns ---
 active_projects = [p for p in projects if p.get('activityLevel') in ('active', 'recent')]
@@ -230,6 +236,7 @@ dna = {
     'services': services,
     'integrations': integrations,
     'companySignals': company,
+    'cliToolsProfile': cli_tools,
     'crossProjectPatterns': cross_project,
     'summary': summary,
 }

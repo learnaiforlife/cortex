@@ -36,7 +36,7 @@ test/fixtures/             # 3 fixture projects (nextjs-app, python-api, minimal
 ```bash
 ./install.sh                                          # Install plugin to ~/.claude/skills/scaffold/
 bash skills/scaffold/scripts/score.sh <output-dir>    # Score scaffold output (0-100 JSON)
-bash skills/scaffold/scripts/run-skill-evals.sh       # Run assertion-based evals (14 test cases)
+bash skills/scaffold/scripts/run-skill-evals.sh       # Run assertion-based evals (18 test cases)
 bash skills/scaffold/scripts/validate.sh <output-dir> # Format validation
 bash skills/scaffold/scripts/auto-improve.sh           # Autoresearch loop (measure-edit-measure)
 bash skills/scaffold/scripts/analyze.sh <repo-dir>    # Heuristic pre-scan (ProjectProfile JSON)
@@ -45,7 +45,7 @@ bash skills/scaffold/scripts/analyze.sh <repo-dir>    # Heuristic pre-scan (Proj
 ## Testing
 
 - Fixtures in `test/fixtures/` (nextjs-app, python-api, minimal)
-- Evals in `skills/scaffold/evals/evals.json` with 11 assertion types
+- Evals in `skills/scaffold/evals/evals.json` with 18 test cases and 15 assertion types
 - Autoresearch loop in `claude-code-auto-research/` (Python 3.10+)
 - Score dimensions: format compliance, specificity, completeness, structural quality (25 pts each)
 
@@ -56,7 +56,7 @@ bash skills/scaffold/scripts/analyze.sh <repo-dir>    # Heuristic pre-scan (Proj
 - **Three-tool parity**: Every scaffold run generates for Claude Code, Cursor, AND Codex
 - **Quality gate**: quality-reviewer subagent must PASS before files are written
 - **Variant dispatch**: Monorepo/minimal repos get specialized SKILL variants via `dispatch-table.json`
-- **Subagents are markdown**: All 11 agents live in `skills/scaffold/agents/*.md` with YAML frontmatter
+- **Subagents are markdown**: All 13 agents live in `skills/scaffold/agents/*.md` with YAML frontmatter
 
 ## Things to Avoid
 

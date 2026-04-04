@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- Documentation alignment pass after deep audit:
+  - Updated architecture/count references to reflect current repository state (13 subagents, 16 scripts, 10 reference docs).
+  - Clarified eval runner coverage as 18 eval cases with 15 assertion types.
+  - Added explicit note that version metadata is currently split across `VERSION` and `.claude-plugin/plugin.json`.
+
 ## [0.2.0] - 2026-04-01
 
 ### Added
