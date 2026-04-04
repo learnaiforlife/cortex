@@ -17,7 +17,7 @@ if [ -d "$SKILL_DIR" ]; then
   mkdir -p "$BACKUP_DIR"
   cp -r "$SKILL_DIR" "$BACKUP_DIR/" 2>/dev/null || true
   # Also backup commands
-  for cmd in scaffold.md scaffold-audit.md scaffold-optimize.md scaffold-discover.md scaffold-toolbox.md; do
+  for cmd in scaffold.md scaffold-audit.md scaffold-optimize.md scaffold-discover.md scaffold-toolbox.md scaffold-migrate.md; do
     [ -f "$COMMANDS_DIR/$cmd" ] && cp "$COMMANDS_DIR/$cmd" "$BACKUP_DIR/" 2>/dev/null || true
   done
   echo "  Backup complete. Restore with: cp -r $BACKUP_DIR/scaffold/* $SKILL_DIR/"
@@ -36,7 +36,7 @@ echo "  Scripts:    $(find "$SKILL_DIR/scripts" -maxdepth 1 -name "*.sh" -type f
 echo "  References: $(find "$SKILL_DIR/references" -maxdepth 1 -name "*.md" -type f 2>/dev/null | wc -l | tr -d ' ') reference docs"
 echo "  Variants:   $(find "$SKILL_DIR/variants" -maxdepth 1 -name "*.md" -type f 2>/dev/null | wc -l | tr -d ' ') skill variants"
 
-# Install commands (/scaffold, /scaffold-audit, /scaffold-optimize, /scaffold-discover)
+# Install commands (/scaffold, /scaffold-audit, /scaffold-optimize, /scaffold-discover, /scaffold-toolbox, /scaffold-migrate)
 echo "Installing commands..."
 mkdir -p "$COMMANDS_DIR"
 cp "$SCRIPT_DIR/commands/"*.md "$COMMANDS_DIR/"
