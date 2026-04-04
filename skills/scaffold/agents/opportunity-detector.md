@@ -43,27 +43,59 @@ You analyze a repository and its environment to produce a SuggestionManifest JSO
    - Score >= 60 → mark as "recommended" (high confidence)
    - Score < 30 → skip (not enough evidence)
 
-6. **Produce SuggestionManifest JSON**: Return the structured manifest:
+6. **Produce SuggestionManifest JSON**: Return the structured manifest with `reason`, `description`, and `smartDefault` fields for every suggested item:
 
 ```json
 {
   "subagents": [
-    {"id": "test-runner", "tier": "haiku", "confidence": 0.95, "reason": "Jest config detected", "description": "Runs tests, reports failures, suggests fixes"},
-    ...
+    {"id": "test-runner", "tier": "haiku", "confidence": 0.95, "reason": "vitest.config.ts found", "description": "Runs tests, reports failures, suggests fixes", "smartDefault": true},
+    {"id": "code-reviewer", "tier": "sonnet", "confidence": 0.85, "reason": "87 source files, 150+ commits", "description": "Reviews PRs for conventions", "smartDefault": false}
   ],
   "skills": {
     "code": [
       {"id": "superpowers", "type": "official-plugin", "priority": "must-have", "reason": "TDD, debugging, planning"}
     ],
     "productivity": [
-      {"id": "avoid-ai-slop", "type": "soft-skill", "reason": "Docs-heavy project", "description": "Prevents generic AI output"}
+      {"id": "avoid-ai-slop", "type": "soft-skill", "reason": "docs/ directory exists", "description": "Prevents generic AI output", "smartDefault": true}
     ]
   },
   "integrations": [
-    {"id": "jira", "confidence": 0.9, "signals_found": ["JIRA_API_TOKEN", "JIRA_URL"], "description": "Create/update Jira issues"}
+    {"id": "jira", "confidence": 0.9, "signals_found": ["JIRA_API_TOKEN", "JIRA_URL"], "reason": "JIRA_URL env var set, JIRA_API_TOKEN env var set", "description": "Create/update Jira issues from code TODOs", "smartDefault": true}
   ]
 }
 ```
+
+7. **Compute smart defaults**: Mark items as `smartDefault: true` based on project type heuristics:
+
+   **Always default-on**:
+   - `test-runner` (if detected) — tests are fundamental
+   - `lint-format` (if detected) — code quality is fundamental
+   - `avoid-ai-slop` (if detected) — highest-impact soft skill
+
+   **Default-on for medium+ projects** (sourceFileCount > 30):
+   - `commit-assistant` (if detected)
+   - `code-reviewer` (if detected)
+
+   **Default-on for large projects** (sourceFileCount > 100):
+   - `pr-writer` (if detected)
+   - `architecture-advisor` (if detected)
+   - `devils-advocate` (if detected)
+
+   **Default-on for integrations** (score >= 60 = "recommended"):
+   - Any integration with score >= 60 is pre-selected
+
+   **Never default-on** (user must opt in):
+   - Integrations with score 30-59 (suggested but not confident)
+   - `grill-me` (niche, user should choose)
+   - `think-out-loud` (low priority)
+   - `build-watcher` (many projects don't need this actively)
+
+8. **Add detection reasons**: For each suggested item, include a `reason` field with a short human-readable explanation of WHY it was detected. Examples:
+   - test-runner: "vitest.config.ts found"
+   - lint-format: "eslint.config.js found"
+   - code-reviewer: "87 source files, 150+ commits"
+   - jira: "JIRA_URL env var set, JIRA_API_TOKEN set"
+   - avoid-ai-slop: "docs/ directory exists"
 
 ## Rules
 

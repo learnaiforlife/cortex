@@ -35,8 +35,10 @@ Variant dispatch happens BEFORE mode routing. Variant files may override or exte
 ## Flag Parsing
 
 Before mode routing, extract flags from `$ARGUMENTS`:
-- `--all` or `--yes`: Set INTERACTIVE_MODE=false, generate everything detected
-- `--minimal`: Set INTERACTIVE_MODE=false and `MINIMAL_MODE=true`, generate only CLAUDE.md + safety rules (use minimal variant behavior)
+- `--all` or `--yes`: Set MODE=automatic, skip mode selection prompt, generate everything detected
+- `--interactive` or `-i`: Set MODE=interactive, skip mode selection prompt, go straight to suggestion screen
+- `--minimal`: Set MINIMAL_MODE=true, skip Steps 2.5-2.7 entirely, generate only CLAUDE.md + safety rules
+- If no mode flag is present, set MODE=unset (will prompt in Step 2.6)
 - Strip flags from `$ARGUMENTS` before passing to mode routing
 
 ## Mode Routing
@@ -89,76 +91,128 @@ Store the output as PROJECT_PROFILE. Even an empty `{}` is fine -- the subagents
 
 ### Step 2.5: Opportunity Detection
 
-If `$ARGUMENTS` contains `--minimal`, set `MINIMAL_MODE=true` and skip Steps 2.5 and 2.7 entirely — generate only CLAUDE.md + safety rules (minimal variant behavior).
+If MINIMAL_MODE=true, skip Steps 2.5, 2.6, and 2.7 entirely — generate only CLAUDE.md + safety rules (minimal variant behavior).
 
 Dispatch the **opportunity-detector** subagent to analyze the repo and environment for suggestions:
 
-- Prompt: "Run the opportunity detection script at `{CLAUDE_SKILL_DIR}/scripts/detect-opportunities.sh` against `{REPO_DIR}`. Then read the reference catalogs at `{CLAUDE_SKILL_DIR}/references/subagent-templates-catalog.md`, `{CLAUDE_SKILL_DIR}/references/soft-skills-catalog.md`, and `{CLAUDE_SKILL_DIR}/references/integration-subagents-catalog.md`. Produce a SuggestionManifest JSON."
+- Prompt: "Run the opportunity detection script at `{CLAUDE_SKILL_DIR}/scripts/detect-opportunities.sh` against `{REPO_DIR}`. Then read the reference catalogs at `{CLAUDE_SKILL_DIR}/references/subagent-templates-catalog.md`, `{CLAUDE_SKILL_DIR}/references/soft-skills-catalog.md`, and `{CLAUDE_SKILL_DIR}/references/integration-subagents-catalog.md`. Produce a SuggestionManifest JSON with detectionReasons and smartDefaults."
 - IMPORTANT: Resolve `${CLAUDE_SKILL_DIR}` to an absolute path before passing to the subagent.
 
 Store the result as SUGGESTION_MANIFEST.
 
-If `$ARGUMENTS` contains `--all` or `--yes`, skip Step 2.7 and use the full manifest as FILTERED_MANIFEST.
+If SUGGESTION_MANIFEST has zero suggestions across all categories (empty subagents, no productivity skills, no integrations), skip Steps 2.6 and 2.7 — there is nothing to select. Set FILTERED_MANIFEST to empty and proceed to Step 3.
+
+### Step 2.6: Mode Selection
+
+If MINIMAL_MODE=true, skip this step and Step 2.7 entirely.
+
+If MODE is already set (via `--all`/`--yes` or `--interactive`/`-i` flags), skip this prompt.
+
+Otherwise, present the mode selection prompt using AskUserQuestion:
+
+```
+How do you want to set up AI for this repo?
+
+[A] Automatic — Generate recommended setup (you review after)
+[I] Interactive — Walk through suggestions, pick what you want
+
+(tip: use --all or --interactive next time to skip this prompt)
+```
+
+**Parse response**:
+- `"a"`, `"auto"`, `"automatic"` (case-insensitive) → MODE=automatic
+- `"i"`, `"interactive"` (case-insensitive) → MODE=interactive
+- Empty or unrecognized → default to MODE=interactive
+
+If MODE=automatic, skip Step 2.7 — use the full SUGGESTION_MANIFEST as FILTERED_MANIFEST and proceed to Step 3.
+
+If MODE=interactive, proceed to Step 2.7.
 
 ### Step 2.7: Interactive Selection
 
-Present the suggestions to the user in up to 3 sequential prompts using AskUserQuestion. Skip any category with zero suggestions.
+This step only runs if MODE=interactive (set in Step 2.6 or via `--interactive` flag).
 
-**Prompt 1: Subagents** (if SUGGESTION_MANIFEST.subagents is non-empty)
+Present ALL suggestions in a single grouped screen using AskUserQuestion. Build the display from SUGGESTION_MANIFEST, organized into sections. Pre-select items marked as `smartDefault: true` in the manifest.
+
+**Display Format**:
+
 ```
-📦 SUBAGENTS — I recommend these for your project:
+Here's what I found in your repo:
 
-  ⚡ FAST (Haiku — cheap, mechanical tasks):
+-- CORE (always included) -----------------------------------
+  [check] CLAUDE.md — Project context for all AI tools
+  [check] .claude/rules/safety.md — Protect critical files
+  [check] .cursor/rules/ — Cursor IDE context
+  [check] AGENTS.md — Codex agent config
+
+-- SUBAGENTS (pick which ones) ------------------------------
+  {tier} [N] {id} — {description}  ({reason})
+  ...
+
+-- SKILLS ---------------------------------------------------
+  [N] {id} — {description}  ({reason})
+  ...
+
+-- INTEGRATIONS (detected in environment) -------------------
   [N] {id} — {description}
+      Detected: {signals_found}
   ...
 
-  🧠 SMART (Sonnet — creative, judgment-heavy):
-  [N] {id} — {description}
-  ...
-
-  🏗️ DEEP (Opus — architectural, complex reasoning):
-  [N] {id} — {description}
-  ...
-
-Which subagents? (e.g., "1,2,5,6", "all", "none", "fast only")
+Type numbers to include (e.g. "1,2,5"), "all", or "none":
+Pre-selected: {smart_default_numbers}
+(press Enter to accept defaults)
 ```
 
-**Prompt 2: Skills** (if SUGGESTION_MANIFEST.skills has entries)
-```
-🎯 SKILLS — Recommended for this project:
+**Building the display**:
 
-  📋 Official Plugins:
-  [N] {id} — {description} {priority_badge}
-  ...
+1. **CORE section**: Always shown. These are not selectable — they are always generated. No numbers assigned.
 
-  💡 Productivity Skills:
-  [N] {id} — {description}
-  ...
+2. **SUBAGENTS section**: Group by model tier. Use these tier indicators:
+   - Haiku tier: show as `fast [N]` with note `(Haiku, ~$0.001/run)`
+   - Sonnet tier: show as `smart [N]` with note `(Sonnet, ~$0.01/run)`
+   - Opus tier: show as `deep [N]` with note `(Opus, ~$0.05/run)`
+   
+   For each subagent, show its detection reason from `detectionReasons` in the manifest (e.g., "vitest.config.ts found", "50+ commits"). Items marked as `smartDefault: true` are shown with a filled indicator.
 
-Which skills? (e.g., "1,2,3,4", "all", "none")
-```
+3. **SKILLS section**: List productivity skills. Show the reason (e.g., "docs/ directory found").
 
-**Prompt 3: Integrations** (if SUGGESTION_MANIFEST.integrations is non-empty)
-```
-🔌 INTEGRATIONS — Detected in your environment:
+4. **INTEGRATIONS section**: List detected integrations. Show the specific signals found (e.g., "JIRA_URL set, jira CLI installed"). Only show integrations with score >= 30.
 
-  [N] {name} — {description}
-      (detected: {signals_found})
-  ...
+5. **Number assignment**: Assign sequential numbers starting at 1, across all selectable sections (subagents first, then skills, then integrations). This allows one unified number input.
 
-Which integrations? (e.g., "1,2", "all", "none")
-```
+6. **Smart defaults line**: List the pre-selected numbers. If the user presses Enter with no input, accept these defaults.
 
 **Parse responses** using these rules:
-- `"all"` → select everything in that category
-- `"none"` → skip entire category
+- Empty input or just Enter → accept smart defaults (items marked `smartDefault: true`)
+- `"all"` → select everything
+- `"none"` → select nothing optional (core files still generated)
 - `"fast only"` or `"haiku only"` → select only Haiku-tier subagents
 - `"smart only"` or `"sonnet only"` → select only Sonnet-tier subagents
 - `"deep only"` or `"opus only"` → select only Opus-tier subagents
-- Comma-separated numbers (`"1,2,5"`) → select specific items
-- Single number (`"3"`) → select that item
+- Comma-separated numbers (`"1,2,5"`) → select those specific items
+- Numbers with exclusions (`"all -3 -7"`) → select all except items 3 and 7
+- Single number (`"3"`) → select that item only
 
-Build FILTERED_MANIFEST from the user's selections. This is passed to downstream steps.
+**After selection, show a confirmation prompt** using AskUserQuestion:
+
+```
+Will create {N} files:
+
+  .claude/agents/test-runner.md        (Haiku subagent)
+  .claude/agents/code-reviewer.md      (Sonnet subagent)
+  .claude/skills/avoid-ai-slop/SKILL.md
+  .mcp.json                            (Jira MCP config)
+  + 4 core files (CLAUDE.md, safety rules, Cursor rules, AGENTS.md)
+
+Proceed? (y/n)
+```
+
+**Parse confirmation**:
+- `"y"`, `"yes"`, empty → proceed, build FILTERED_MANIFEST from selections
+- `"n"`, `"no"` → re-show the selection screen (go back to the suggestion display)
+- After 2 "no" responses, ask: "Would you like to switch to automatic mode instead? (y/n)"
+
+Build FILTERED_MANIFEST from the user's confirmed selections. This is passed to downstream steps.
 
 ### Step 3: Dispatch Parallel Subagents
 
@@ -195,7 +249,7 @@ If any exist:
 
 Using the combined output from both subagents and your own reading, generate files for all three tools. Read the format references to ensure compliance.
 
-**Filtered Generation Gate**: Only generate artifacts that appear in FILTERED_MANIFEST (built in Step 2.7 or from --all flag). If a subagent was not selected, do not generate its `.claude/agents/` file. If an integration was not selected, do not generate its MCP config or subagent file. If `MINIMAL_MODE=true`, override all other cases and generate only `CLAUDE.md` plus safety rules. If no FILTERED_MANIFEST exists because no suggestions were found, generate the standard scaffold output.
+**Filtered Generation Gate**: Only generate artifacts that appear in FILTERED_MANIFEST (built in Step 2.7 for interactive mode, or set to full SUGGESTION_MANIFEST for automatic mode). If a subagent was not selected, do not generate its `.claude/agents/` file. If an integration was not selected, do not generate its MCP config or subagent file. If `MINIMAL_MODE=true`, override all other cases and generate only `CLAUDE.md` plus safety rules. If no FILTERED_MANIFEST exists because no suggestions were found, generate the standard scaffold output.
 
 #### 5A: Claude Code Files
 
@@ -363,19 +417,56 @@ mkdir -p "$REPO_DIR/.claude/agents" "$REPO_DIR/.claude/skills" "$REPO_DIR/.claud
 
 ### Step 8: Summary Report
 
-After all files are written, print a clear summary:
+After all files are written, print a summary. The format differs by mode.
+
+**If MODE=automatic**, lead with what was created and why:
+
+```
+## Scaffold Complete (Automatic Mode)
+
+### Files Created ({N} total)
+
+Core:
+  CLAUDE.md                              — Project context (architecture, commands, conventions)
+  .claude/rules/safety.md                — Protects critical files from accidental changes
+  .cursor/rules/project-context.mdc      — Cursor IDE project context
+  AGENTS.md                              — Codex agent configuration
+
+Subagents:
+  .claude/agents/test-runner.md          — Runs vitest tests, reports failures (Haiku, ~$0.001/run)
+                                           Why: vitest.config.ts detected
+  .claude/agents/code-reviewer.md        — Reviews PRs for conventions (Sonnet, ~$0.01/run)
+                                           Why: 87 source files, 150+ commits
+  ...
+
+Skills:
+  .claude/skills/avoid-ai-slop/SKILL.md  — Prevents verbose AI output
+                                           Why: docs/ directory detected
+
+Integrations:
+  .claude/agents/jira-manager.md         — Creates Jira issues from TODOs
+  .mcp.json                              — Jira MCP server config
+                                           Why: JIRA_URL and JIRA_API_TOKEN env vars set
+
+Don't want something? Delete the file — each is self-contained.
+```
+
+**If MODE=interactive**, the summary is shorter (user already approved the list):
 
 ```
 ## Scaffold Complete
 
-### What Was Detected
-[List all opportunities found by the opportunity-detector, even if not selected]
+### Files Created ({N} total)
+  [path] — [one-line description] [tier badge]
+  ...
 
-### Files Generated
-- [path] -- [what it contains] [model tier badge if subagent]
-- [path] -- [what it contains]
-- ...
+### What Was Skipped
+  [list items that were available but not selected, so user can add later]
+```
 
+Then continue with these sections regardless of mode:
+
+```
 ### Model Cost Routing
 ⚡ N Haiku subagents — ~$0.001/run each (mechanical tasks)
 🧠 N Sonnet subagents — ~$0.01/run each (creative tasks)
