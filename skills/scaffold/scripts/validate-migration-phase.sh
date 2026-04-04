@@ -6,6 +6,9 @@
 
 set -euo pipefail
 
+# Trap unexpected errors and output valid JSON instead of crashing
+trap 'echo "{\"error\": \"Unexpected error in validation script\", \"phase\": 0, \"verdict\": \"FAIL\", \"checks\": []}"; exit 1' ERR
+
 json_escape() {
   local s="$1"
   s="${s//\\/\\\\}"    # backslashes first

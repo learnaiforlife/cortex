@@ -12,7 +12,7 @@ model: sonnet
 maxTurns: 30
 ---
 
-# MIGRATION: Remove after {{MONOLITH_NAME}} decomposition completes
+# MIGRATION: remove after {{MONOLITH_NAME}} decomposition completes
 
 ## Placeholders
 

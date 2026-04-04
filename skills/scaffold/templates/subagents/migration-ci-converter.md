@@ -11,7 +11,7 @@ model: sonnet
 maxTurns: 20
 ---
 
-# MIGRATION: Remove after {{SOURCE_CI}} → {{TARGET_CI}} migration completes
+# MIGRATION: remove after {{SOURCE_CI}} → {{TARGET_CI}} migration completes
 
 ## Placeholders
 

@@ -12,7 +12,7 @@ model: sonnet
 maxTurns: 20
 ---
 
-# MIGRATION: Remove after {{SOURCE_INFRA}} → {{TARGET_INFRA}} migration completes
+# MIGRATION: remove after {{SOURCE_INFRA}} → {{TARGET_INFRA}} migration completes
 
 ## Placeholders
 

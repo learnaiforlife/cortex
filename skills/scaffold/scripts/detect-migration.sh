@@ -96,12 +96,16 @@ detect_language_migrations() {
     migrations="${migrations}{\"category\":\"language\",\"from\":\"JavaScript\",\"to\":\"TypeScript\",\"confidence\":0.80,\"signals\":[{\"type\":\"file_coexistence\",\"detail\":\"$detail\"}]},"
   fi
 
-  # Ruby + Go coexistence
+  # Ruby + Go coexistence (catalog signals: Gemfile + go.mod)
   local rb_count=$(count_files "*.rb")
   local go_count=$(count_files "*.go")
   if [ "$rb_count" -gt 3 ] && [ "$go_count" -gt 3 ]; then
+    local conf=0.60
+    local gemfile=$(file_exists "Gemfile")
+    local gomod=$(file_exists "go.mod")
+    [ -n "$gemfile" ] && [ -n "$gomod" ] && conf=0.85
     local detail=$(json_escape "$rb_count .rb files + $go_count .go files")
-    migrations="${migrations}{\"category\":\"language\",\"from\":\"Ruby\",\"to\":\"Go\",\"confidence\":0.60,\"signals\":[{\"type\":\"file_coexistence\",\"detail\":\"$detail\"}]},"
+    migrations="${migrations}{\"category\":\"language\",\"from\":\"Ruby\",\"to\":\"Go\",\"confidence\":$conf,\"signals\":[{\"type\":\"file_coexistence\",\"detail\":\"$detail\"}]},"
   fi
 
   echo "$migrations"

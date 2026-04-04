@@ -431,6 +431,23 @@
       ]
     },
     {
+      "id": "migrate-fast-track-low-risk",
+      "prompt": "/scaffold migrate test/fixtures/migration-py-to-ts --yes",
+      "fixture": "test/fixtures/migration-py-to-ts",
+      "expected_output": "Low-risk migration uses Fast Track simplified path after risk assessment",
+      "files": [],
+      "expectations": [
+        "Risk assessment runs BEFORE fast track check (Step 3 before Step 3.5)",
+        "For LOW/MEDIUM risk with single migration, Fast Track generates 2-phase plan",
+        "Fast Track skips interactive strategy selection",
+        "Fast Track skips agent generation for LOW risk"
+      ],
+      "assertions": [
+        { "type": "script_output_valid_json", "script": "detect-migration.sh", "args": "test/fixtures/migration-py-to-ts" },
+        { "type": "output_contains", "pattern": "[Ff]ast [Tt]rack|simplified|2.phase" }
+      ]
+    },
+    {
       "id": "migrate-cleanup-removes-artifacts",
       "prompt": "/scaffold migrate --cleanup test/fixtures/migration-py-to-ts",
       "fixture": "test/fixtures/migration-py-to-ts",

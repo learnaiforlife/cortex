@@ -5,6 +5,8 @@ description: "Migration workflow variant. Detects active migrations, assesses ri
 
 # Migration Workflow Variant
 
+> **Variable inheritance**: `{CLAUDE_SKILL_DIR}` and `{REPO_DIR}` are inherited from the parent SKILL.md dispatch. `{CLAUDE_SKILL_DIR}` resolves to the skill installation directory (e.g. `~/.claude/skills/scaffold/`). `{REPO_DIR}` is set by Step 1 of the main SKILL.md.
+
 This variant handles the `/scaffold migrate` command. It is a parallel workflow to standard scaffold — it generates temporary, phased migration tooling rather than steady-state AI setup.
 
 ## When to Use This Variant
@@ -13,6 +15,16 @@ Activate when:
 - User runs `/scaffold migrate` explicitly
 - `detect-migration.sh` returns `"detected": true`
 - `MIGRATION-PLAN.md` exists in the repo (resuming a migration)
+
+## Multi-Migration Handling
+
+If `detect-migration.sh` returns multiple detected migrations:
+
+1. Display all detected migrations as a numbered list with category, from→to, and confidence
+2. Ask the user: "Which migration would you like to address? (enter number, 'all' for sequential, or 'cancel')"
+3. If user selects a single migration, proceed with only that one
+4. If user selects 'all', process migrations sequentially in priority order (highest confidence first)
+5. Each migration gets its own section in MIGRATION-PLAN.md
 
 ## Sub-command Routing
 
@@ -38,6 +50,8 @@ Parse flags from the command arguments:
 - `--from <source>` and `--to <target>`: explicit migration type (skip auto-detection)
 - `--auto-detect` (default): run heuristic detection
 - `--yes` / `-y`: skip interactive prompts, use recommended defaults
+
+**Conflict rule**: If both `--from/--to` and `--auto-detect` are present, `--from/--to` takes precedence — explicit user specification always overrides heuristic detection.
 
 If `--from` and `--to` are provided, construct a MigrationSignals JSON directly:
 ```json

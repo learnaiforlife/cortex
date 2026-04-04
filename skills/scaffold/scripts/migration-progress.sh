@@ -5,6 +5,9 @@
 
 set -euo pipefail
 
+# Trap unexpected errors and output valid JSON
+trap 'echo "{\"error\": \"Unexpected error in progress tracking script\"}"; exit 1' ERR
+
 REPO_DIR="${1:-.}"
 
 REPO_DIR="$(cd "$REPO_DIR" && pwd)"
@@ -22,6 +25,17 @@ json_escape() {
 
 if [ ! -f "$PLAN_FILE" ]; then
   echo '{"error": "No MIGRATION-PLAN.md found. Run /scaffold migrate to create one."}'
+  exit 1
+fi
+
+# Check file is not empty/malformed
+if [ ! -s "$PLAN_FILE" ]; then
+  echo '{"error": "MIGRATION-PLAN.md is empty. Run /scaffold migrate to regenerate."}'
+  exit 1
+fi
+
+if ! grep -q "^## Phase" "$PLAN_FILE" 2>/dev/null; then
+  echo '{"error": "MIGRATION-PLAN.md is malformed — no phase headers found. Run /scaffold migrate to regenerate."}'
   exit 1
 fi
 
