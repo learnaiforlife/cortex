@@ -50,6 +50,7 @@ Determine the mode from `$ARGUMENTS` (after flag stripping):
 - If `$ARGUMENTS` starts with **"discover"** --> jump to [Discover Mode](#discover-mode)
 - If `$ARGUMENTS` is exactly **"audit"** --> jump to [Audit Mode](#audit-mode)
 - If `$ARGUMENTS` is exactly **"optimize"** --> jump to [Optimize Mode](#optimize-mode)
+- If `$ARGUMENTS` starts with **"migrate"** --> load `${CLAUDE_SKILL_DIR}/variants/SKILL-migration.md` and follow its instructions (strip "migrate" from arguments, pass remainder as the repo path or flags)
 - Otherwise --> proceed with [Scaffold Mode](#scaffold-mode) (treat `$ARGUMENTS` as a repo URL or path)
 
 ---

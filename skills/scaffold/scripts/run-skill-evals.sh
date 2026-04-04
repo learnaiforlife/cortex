@@ -216,8 +216,15 @@ run_assertion() {
       if [ ! -f "$script_path" ]; then
         echo "$script not found at $script_path"; return 1
       fi
+      local target_dir
+      if [ -n "$args_val" ]; then
+        # args is relative to project root (SAVED_REPO_DIR), not the overridden REPO_DIR
+        target_dir="$SAVED_REPO_DIR/$args_val"
+      else
+        target_dir="$REPO_DIR"
+      fi
       local output
-      output=$(bash "$script_path" "$REPO_DIR/$args_val" 2>/dev/null)
+      output=$(bash "$script_path" "$target_dir" 2>/dev/null)
       if echo "$output" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
         echo "$script produces valid JSON"; return 0
       else

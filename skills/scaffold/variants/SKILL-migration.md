@@ -66,19 +66,6 @@ If `detected` is `false` and no `--from/--to` flags were given:
 
 If `detected` is `true`, display a summary of detected migrations to the user.
 
-### Step 1.5: Fast Track Check
-
-If the number of detected migrations is 1 AND the migration category is one of: `toolchain`, `ai-tools`, or a language migration with LOW confidence:
-
-**Fast Track Path** (simplified 2-step flow):
-1. Run migration-analyzer agent only (skip risk-assessor)
-2. Generate a simplified 2-phase plan (Prep + Execute) directly
-3. Skip interactive strategy selection — use the catalog's default strategy
-4. Skip agent generation for LOW risk migrations
-5. Jump to Step 5 output
-
-For all other cases, continue with the full pipeline.
-
 ### Step 2: Deep Migration Analysis
 
 Dispatch the **migration-analyzer** agent:
@@ -102,7 +89,19 @@ Dispatch the **risk-assessor** agent:
 - Scores 5 dimensions: complexity, blast-radius, reversibility, test-coverage, data-risk
 - Output: `RISK_ASSESSMENT` (RiskAssessment JSON)
 
-### Step 3.5: Risk Gate
+### Step 3.5: Fast Track Check
+
+If the number of detected migrations is 1 AND `RISK_ASSESSMENT.overallRisk` is `LOW` or `MEDIUM`, AND the migration category is one of: `toolchain`, `ai-tools`, or a simple language migration (e.g. JS→TS):
+
+**Fast Track Path** (simplified 2-step flow):
+1. Generate a simplified 2-phase plan (Prep + Execute) directly using the catalog's default strategy
+2. Skip interactive strategy selection (Step 4)
+3. Skip agent generation for LOW risk migrations
+4. Jump to Step 5 output
+
+For all other cases (HIGH/CRITICAL risk, multiple migrations, complex categories), continue with the full pipeline.
+
+### Step 3.6: Risk Gate
 
 Display the risk assessment to the user in a formatted table:
 
@@ -311,10 +310,10 @@ These markers contribute to migration confidence scores and help map which files
 /scaffold migrate
   → Step 0: Parse flags
   → Step 1: detect-migration.sh (heuristic scan)
-  → Step 1.5: Fast track check (LOW risk → simplified path)
   → Step 2: migration-analyzer agent (deep analysis)
   → Step 3: risk-assessor agent (5-dimension scoring)
-  → Step 3.5: Risk gate (display + confirm)
+  → Step 3.5: Fast track check (LOW/MEDIUM risk → simplified path)
+  → Step 3.6: Risk gate (display + confirm)
   → Step 4: Strategy selection (interactive)
   → Step 5: migration-planner agent (phased plan)
   → Step 6: migration-agent-generator agent (AI tooling)

@@ -361,7 +361,7 @@
         "MigrationProfile includes both Python and TypeScript evidence"
       ],
       "assertions": [
-        { "type": "script_output_valid_json", "script": "detect-migration.sh" }
+        { "type": "script_output_valid_json", "script": "detect-migration.sh", "args": "test/fixtures/migration-py-to-ts" }
       ]
     },
     {
@@ -377,6 +377,8 @@
         "Plan includes Overview section with risk level and strategy"
       ],
       "assertions": [
+        { "type": "script_output_valid_json", "script": "validate-migration-phase.sh", "args": "test/fixtures/migration-py-to-ts" },
+        { "type": "script_output_valid_json", "script": "migration-progress.sh", "args": "test/fixtures/migration-py-to-ts" },
         { "type": "output_contains", "pattern": "[Pp]hase 1|MIGRATION.PLAN" },
         { "type": "output_contains", "pattern": "[Pp]hase 2|phases" }
       ]
