@@ -346,6 +346,112 @@
         { "type": "max_file_count", "base_dir": ".", "max_files": 10 },
         { "type": "file_not_exists", "path": ".claude/agents/architecture-advisor.md" }
       ]
+    },
+    {
+      "id": "migrate-detect-dual-language",
+      "prompt": "/scaffold migrate test/fixtures/migration-py-to-ts",
+      "fixture": "test/fixtures/migration-py-to-ts",
+      "expected_output": "Detects Python→TypeScript migration from dual-language signals",
+      "files": [],
+      "expectations": [
+        "detect-migration.sh detects dual-language coexistence (Python + TypeScript)",
+        "Migration category is 'language'",
+        "Confidence is at least 0.5",
+        "Comment markers detected (TODO migrate, @deprecated, LEGACY)",
+        "MigrationProfile includes both Python and TypeScript evidence"
+      ],
+      "assertions": [
+        { "type": "script_output_valid_json", "script": "detect-migration.sh", "args": "test/fixtures/migration-py-to-ts" },
+        { "type": "script_output_contains", "script": "detect-migration.sh", "args": "test/fixtures/migration-py-to-ts", "pattern": "language" },
+        { "type": "script_output_contains", "script": "detect-migration.sh", "args": "test/fixtures/migration-py-to-ts", "pattern": "Python" }
+      ]
+    },
+    {
+      "id": "migrate-plan-has-phases",
+      "prompt": "/scaffold migrate test/fixtures/migration-py-to-ts",
+      "fixture": "test/fixtures/migration-py-to-ts",
+      "expected_output": "Generated MIGRATION-PLAN.md with multiple phases",
+      "files": [],
+      "expectations": [
+        "MIGRATION-PLAN.md is generated at repo root",
+        "Plan contains at least 2 phases",
+        "Each phase has a name and status",
+        "Plan includes Overview section with risk level and strategy"
+      ],
+      "assertions": [
+        { "type": "file_exists", "path": "MIGRATION-PLAN.md" },
+        { "type": "file_contains", "path": "MIGRATION-PLAN.md", "pattern": "## Phase 1" },
+        { "type": "file_contains", "path": "MIGRATION-PLAN.md", "pattern": "## Phase 2" },
+        { "type": "file_min_size", "path": "MIGRATION-PLAN.md", "min_bytes": 500 }
+      ]
+    },
+    {
+      "id": "migrate-plan-has-rollback",
+      "prompt": "/scaffold migrate test/fixtures/migration-py-to-ts",
+      "fixture": "test/fixtures/migration-py-to-ts",
+      "expected_output": "MIGRATION-PLAN.md includes rollback instructions for each phase",
+      "files": [],
+      "expectations": [
+        "Each phase has a Rollback section",
+        "Each phase has Validation criteria with checkboxes",
+        "Each phase has Entry Criteria"
+      ],
+      "assertions": [
+        { "type": "file_exists", "path": "MIGRATION-PLAN.md" },
+        { "type": "file_contains", "path": "MIGRATION-PLAN.md", "pattern": "### Rollback" },
+        { "type": "file_contains", "path": "MIGRATION-PLAN.md", "pattern": "### Validation" },
+        { "type": "file_contains", "path": "MIGRATION-PLAN.md", "pattern": "- \\[" }
+      ]
+    },
+    {
+      "id": "migrate-agents-are-ephemeral",
+      "prompt": "/scaffold migrate test/fixtures/migration-py-to-ts",
+      "fixture": "test/fixtures/migration-py-to-ts",
+      "expected_output": "Generated migration agents are marked as ephemeral (removable after migration)",
+      "files": [],
+      "expectations": [
+        "Migration converter agent is generated",
+        "Agent file contains MIGRATION removal marker",
+        "Agent has correct YAML frontmatter (name, description, tools, model)",
+        "Migration safety rule is generated"
+      ],
+      "assertions": [
+        { "type": "file_exists", "path": "MIGRATION-PLAN.md" },
+        { "type": "file_not_contains", "path": "MIGRATION-PLAN.md", "pattern": "\\[YOUR_PROJECT\\]|PLACEHOLDER" }
+      ]
+    },
+    {
+      "id": "migrate-no-conflict-with-scaffold",
+      "prompt": "/scaffold migrate test/fixtures/migration-py-to-ts",
+      "fixture": "test/fixtures/migration-py-to-ts",
+      "expected_output": "Migration output does not conflict with existing scaffold files",
+      "files": [],
+      "expectations": [
+        "Existing CLAUDE.md is preserved if present, migration section appended",
+        "Migration agents are added alongside existing agents (not replacing)",
+        "Migration rules are additive (not overwriting existing rules)",
+        "No placeholder text in any generated files"
+      ],
+      "assertions": [
+        { "type": "file_exists", "path": "MIGRATION-PLAN.md" },
+        { "type": "file_not_contains", "path": "MIGRATION-PLAN.md", "pattern": "\\[PROJECT_NAME\\]|PLACEHOLDER|TODO:" }
+      ]
+    },
+    {
+      "id": "migrate-cleanup-removes-artifacts",
+      "prompt": "/scaffold migrate --cleanup test/fixtures/migration-py-to-ts",
+      "fixture": "test/fixtures/migration-py-to-ts",
+      "expected_output": "Cleanup command removes migration-specific agents, rules, and skills",
+      "files": [],
+      "expectations": [
+        "Migration agents marked with MIGRATION comment are identified",
+        "Migration rules are identified for removal",
+        "MIGRATION-PLAN.md is archived to docs/migrations/",
+        "Standard scaffold can be re-run after cleanup"
+      ],
+      "assertions": [
+        { "type": "output_contains", "pattern": "[Cc]leanup|[Rr]emov|[Aa]rchiv" }
+      ]
     }
   ]
 }

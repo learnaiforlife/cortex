@@ -4,7 +4,8 @@
     "file_exists": "Check if the file or glob pattern exists in REPO_DIR",
     "dir_count": "Count directories matching the glob pattern; match if count >= min",
     "file_count": "Count total files (excluding dirs in 'exclude' list); match if count <= max (inclusive)",
-    "no_key_framework": "Check that no file matching any listed framework's detection pattern exists (e.g., next.config.*, vite.config.*, etc.)"
+    "no_key_framework": "Check that no file matching any listed framework's detection pattern exists (e.g., next.config.*, vite.config.*, etc.)",
+    "script_output": "Run the named script and check if the JSON output's key matches the expected value"
   },
   "variants": [
     {
@@ -32,6 +33,17 @@
       ],
       "match": "all",
       "priority": 5
+    },
+    {
+      "name": "migration",
+      "file": "variants/SKILL-migration.md",
+      "description": "Repos with active migration signals (dual languages, deprecated markers, MIGRATION-PLAN.md)",
+      "signals": [
+        {"type": "file_exists", "pattern": "MIGRATION-PLAN.md"},
+        {"type": "script_output", "script": "detect-migration.sh", "key": "detected", "value": true}
+      ],
+      "match": "any",
+      "priority": 15
     }
   ],
   "default": "SKILL.md"

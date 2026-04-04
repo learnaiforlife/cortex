@@ -1,0 +1,68 @@
+openapi: "3.1.0"
+info:
+  title: Data Processing API
+  version: "2.1.0"
+  description: Shared API contract between Python and TypeScript implementations
+paths:
+  /api/datasets:
+    get:
+      summary: List datasets
+      responses:
+        "200":
+          description: List of datasets
+    post:
+      summary: Create dataset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DatasetCreate"
+      responses:
+        "201":
+          description: Created dataset
+  /api/datasets/{id}:
+    get:
+      summary: Get dataset by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Dataset details
+  /api/datasets/{id}/process:
+    post:
+      summary: Process a dataset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "202":
+          description: Processing started
+  /api/health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Service healthy
+components:
+  schemas:
+    DatasetCreate:
+      type: object
+      required:
+        - name
+        - source_url
+      properties:
+        name:
+          type: string
+        source_url:
+          type: string
+        format:
+          type: string
+          enum: [csv, json, parquet]
