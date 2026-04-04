@@ -129,22 +129,43 @@ while IFS= read -r line; do
   else
     # Try to detect runnable checks
     if echo "$CHECK_DESC" | grep -qi "test.*pass\|pytest\|npm test\|mvn test\|go test"; then
-      # Check for test results — do NOT run tests (may have side effects)
-      if [ -f "$REPO_DIR/package.json" ]; then
-        STATUS="SKIP"
-        DETAIL="Node.js test framework detected — run 'npm test' manually to verify"
+      # Check for test infrastructure — NEVER run tests (may have side effects)
+      local test_infra_found=false
+      local test_infra_details=""
+
+      # Check if test command exists in package.json scripts
+      if [ -f "$REPO_DIR/package.json" ] && grep -q '"test"' "$REPO_DIR/package.json" 2>/dev/null; then
+        test_infra_found=true
+        test_infra_details="npm test script in package.json"
       elif [ -f "$REPO_DIR/pyproject.toml" ] || [ -f "$REPO_DIR/setup.py" ]; then
-        STATUS="SKIP"
-        DETAIL="Python test framework detected — run 'pytest' manually to verify"
+        test_infra_found=true
+        test_infra_details="Python test framework (pyproject.toml/setup.py)"
       elif [ -f "$REPO_DIR/go.mod" ]; then
-        STATUS="SKIP"
-        DETAIL="Go test framework detected — run 'go test ./...' manually to verify"
+        test_infra_found=true
+        test_infra_details="Go test framework (go.mod)"
       elif [ -f "$REPO_DIR/pom.xml" ]; then
+        test_infra_found=true
+        test_infra_details="Maven test framework (pom.xml)"
+      fi
+
+      # Check for test result artifacts
+      if [ -d "$REPO_DIR/coverage" ] || [ -f "$REPO_DIR/jest-results.json" ] || [ -f "$REPO_DIR/test-results.xml" ]; then
+        test_infra_found=true
+        test_infra_details="${test_infra_details:+$test_infra_details; }test result artifacts found"
+      fi
+
+      # Check for CI workflows (proxy for test execution)
+      if [ -d "$REPO_DIR/.github/workflows" ] && ls "$REPO_DIR/.github/workflows"/*.yml 2>/dev/null | head -1 > /dev/null; then
+        test_infra_found=true
+        test_infra_details="${test_infra_details:+$test_infra_details; }CI workflows present"
+      fi
+
+      if [ "$test_infra_found" = true ]; then
         STATUS="SKIP"
-        DETAIL="Maven test framework detected — run 'mvn test' manually to verify"
+        DETAIL="Test infrastructure detected but not executed by validator ($test_infra_details)"
       else
         STATUS="SKIP"
-        DETAIL="Test framework not auto-detected — run tests manually"
+        DETAIL="No test infrastructure detected — set up test framework before validating"
       fi
     elif echo "$CHECK_DESC" | grep -qi "build.*succeed\|compile\|npm run build"; then
       STATUS="SKIP"

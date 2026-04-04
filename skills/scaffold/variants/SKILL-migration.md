@@ -107,11 +107,11 @@ Dispatch the **risk-assessor** agent:
 
 If the number of detected migrations is 1 AND `RISK_ASSESSMENT.overallRisk` is `LOW` or `MEDIUM`, AND the migration category is one of: `toolchain`, `ai-tools`, or a simple language migration (e.g. JS→TS):
 
-**Fast Track Path** (simplified 2-step flow):
+**Fast Track Path** (simplified flow — skips Steps 4-6):
 1. Generate a simplified 2-phase plan (Prep + Execute) directly using the catalog's default strategy
-2. Skip interactive strategy selection (Step 4)
-3. Skip agent generation for LOW risk migrations
-4. Jump to Step 5 output
+2. Generate 1 converter agent from the appropriate template (use `migration-converter.md` for language/framework/toolchain, `migration-ci-converter.md` for devops, `migration-infra.md` for cloud/infrastructure)
+3. Generate the migration safety rule (same as full-pipeline Step 6, item 4)
+4. Skip Steps 4-6 entirely — jump to Step 7 (Conflict Check)
 
 For all other cases (HIGH/CRITICAL risk, multiple migrations, complex categories), continue with the full pipeline.
 

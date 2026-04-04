@@ -298,7 +298,7 @@ detect_ai_tool_migrations() {
   # No AI config at all — only if the repo has actual source files (not empty/blank)
   if [ -z "$cursor_dir" ] && [ -z "$claude_dir" ] && [ -z "$claude_md" ]; then
     local src_file_count=$(find "$REPO_DIR" -maxdepth 3 -type f \( -name "*.py" -o -name "*.js" -o -name "*.ts" -o -name "*.java" -o -name "*.go" -o -name "*.rb" -o -name "*.rs" -o -name "*.c" -o -name "*.cpp" -o -name "*.cs" \) -not -path "*/.git/*" -not -path "*/node_modules/*" 2>/dev/null | wc -l | tr -d ' ')
-    if [ "$src_file_count" -gt 0 ]; then
+    if [ "$src_file_count" -ge 3 ]; then
       migrations="${migrations}{\"category\":\"ai-tools\",\"from\":\"None\",\"to\":\"AI-assisted\",\"confidence\":0.90,\"signals\":[{\"type\":\"config_absence\",\"detail\":\"No .cursor/, .claude/, or CLAUDE.md found\"}]},"
     fi
   fi
