@@ -129,9 +129,10 @@ while IFS= read -r line; do
   else
     # Try to detect runnable checks
     if echo "$CHECK_DESC" | grep -qi "test.*pass\|pytest\|npm test\|mvn test\|go test"; then
-      # Check for test infrastructure — NEVER run tests (may have side effects)
-      local test_infra_found=false
-      local test_infra_details=""
+      # Check for test infrastructure — NEVER run tests (may have side effects).
+      # NOTE: uses plain variables (not `local`) because this runs in main scope.
+      test_infra_found=false
+      test_infra_details=""
 
       # Check if test command exists in package.json scripts
       if [ -f "$REPO_DIR/package.json" ] && grep -q '"test"' "$REPO_DIR/package.json" 2>/dev/null; then

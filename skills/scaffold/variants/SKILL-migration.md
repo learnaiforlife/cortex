@@ -30,15 +30,19 @@ If `detect-migration.sh` returns multiple detected migrations:
 
 Parse the command arguments to determine the action:
 
-| Argument | Action |
-|----------|--------|
-| (none) or `--auto-detect` | Full migration setup (Steps 0-9) |
-| `--from X --to Y` | Explicit migration — skip detection, construct signals directly |
-| `--status` | Show migration progress (jump to Status Flow) |
-| `--validate` | Validate current phase (jump to Validation Flow) |
-| `--next` | Advance to next phase (jump to Next Flow) |
-| `--cleanup` | Remove migration artifacts (jump to Cleanup Flow) |
-| `--rollback` | Show rollback for current phase (jump to Rollback Flow) |
+| Argument | Action | Backing |
+|----------|--------|---------|
+| (none) or `--auto-detect` | Full migration setup (Steps 0-9) | Scripts + agents |
+| `--from X --to Y` | Explicit migration — skip detection, construct signals directly | Scripts + agents |
+| `--status` | Show migration progress (jump to Status Flow) | `migration-progress.sh` + agent |
+| `--validate` | Validate current phase (jump to Validation Flow) | `validate-migration-phase.sh` + agent |
+| `--next` | Advance to next phase (jump to Next Flow) | LLM-orchestrated (edits MIGRATION-PLAN.md) |
+| `--cleanup` | Remove migration artifacts (jump to Cleanup Flow) | LLM-orchestrated (finds + removes files) |
+| `--rollback` | Show rollback for current phase (jump to Rollback Flow) | LLM-orchestrated (reads plan, displays instructions) |
+
+> **Implementation note:** `--next`, `--cleanup`, and `--rollback` are orchestrated
+> by the LLM reading and editing MIGRATION-PLAN.md directly. They have no dedicated
+> scripts. Their quality depends on the plan content generated during setup.
 
 ---
 
@@ -278,28 +282,49 @@ Run `/scaffold migrate --cleanup` to remove migration artifacts.
 
 ### Next Flow (`--next`)
 
-1. Read MIGRATION-PLAN.md
-2. Find current phase (first `IN_PROGRESS`)
-3. Run validation on current phase
-4. If validation passes: mark current phase as `COMPLETE`, mark next phase as `IN_PROGRESS`
-5. If validation fails: report failures, do not advance
-6. Update MIGRATION-PLAN.md
+> **No dedicated script.** The LLM reads and edits MIGRATION-PLAN.md directly.
+
+1. Read MIGRATION-PLAN.md. If missing, report error and exit.
+2. Find current phase (first `IN_PROGRESS`). If no phase is in progress, report that.
+3. Run `bash {CLAUDE_SKILL_DIR}/scripts/validate-migration-phase.sh {REPO_DIR}` on the current phase.
+4. If validation passes (all non-SKIP checks pass): update MIGRATION-PLAN.md — set current phase status to `COMPLETE`, set next phase status to `IN_PROGRESS`.
+5. If validation fails or returns WARN: report the failing/skipped checks, do **not** advance. Tell the user what needs to pass before advancing.
+6. If all phases are already `COMPLETE`, suggest running `--cleanup`.
+
+> **Limitation:** Phase advancement is a text edit to MIGRATION-PLAN.md. There is no
+> transactional guarantee. If the edit fails or is interrupted, re-run `--status`
+> to see the current state.
 
 ### Cleanup Flow (`--cleanup`)
 
-1. Find all files marked with `# MIGRATION: remove after`
-2. List them and ask user to confirm deletion
-3. Remove migration-specific agents, rules, skills
-4. Archive MIGRATION-PLAN.md to `docs/migrations/YYYY-MM-DD-[type].md`
-5. Run standard `/scaffold` to regenerate clean AI setup
+> **No dedicated script.** The LLM searches for migration markers and removes files.
+
+1. Search the repo for files containing `# MIGRATION: remove after` (the marker placed by the migration-agent-generator).
+2. List all matching files and display them to the user.
+3. **Ask user to confirm** before deleting anything.
+4. If confirmed: delete the listed files.
+5. If MIGRATION-PLAN.md exists, move it to `docs/migrations/YYYY-MM-DD-[type].md` (create the directory if needed).
+6. Remove any migration sections previously appended to CLAUDE.md and AGENTS.md (look for `## Active Migration:` and `## Migration:` headers).
+7. Suggest re-running `/scaffold` to regenerate clean AI setup.
+
+> **Limitation:** Cleanup relies on the `# MIGRATION: remove after` marker being
+> present in generated files. If migration files were hand-edited and the marker
+> was removed, those files will not be found. Review the result manually.
 
 ### Rollback Flow (`--rollback`)
 
-1. Read MIGRATION-PLAN.md
-2. Find current phase (first `IN_PROGRESS`)
-3. Display the rollback instructions for that phase
-4. Ask user to confirm rollback
-5. If confirmed, mark phase as `NOT_STARTED` and update MIGRATION-PLAN.md
+> **No dedicated script.** The LLM reads MIGRATION-PLAN.md and displays instructions.
+
+1. Read MIGRATION-PLAN.md. If missing, report error and exit.
+2. Find current phase (first `IN_PROGRESS`). If none, report that.
+3. Extract and display the `### Rollback` section for that phase verbatim.
+4. Ask the user to confirm they want to mark the phase as rolled back.
+5. If confirmed: set the phase status to `NOT_STARTED` in MIGRATION-PLAN.md.
+
+> **Limitation:** This only displays rollback *instructions* — it does not execute
+> them. The user must perform the actual rollback steps manually. The quality of
+> the instructions depends entirely on what the migration-planner agent wrote
+> during the initial setup.
 
 ---
 
@@ -321,7 +346,7 @@ These markers contribute to migration confidence scores and help map which files
 ## Flow Summary
 
 ```
-/scaffold migrate
+/scaffold migrate             (scripts + agents)
   → Step 0: Parse flags
   → Step 1: detect-migration.sh (heuristic scan)
   → Step 2: migration-analyzer agent (deep analysis)
@@ -334,6 +359,16 @@ These markers contribute to migration confidence scores and help map which files
   → Step 7: Conflict check with existing setup
   → Step 8: Quality review
   → Step 9: Write files + summary
+
+/scaffold migrate --status    (migration-progress.sh + agent)
+/scaffold migrate --validate  (validate-migration-phase.sh + agent)
+/scaffold migrate --next      (LLM-orchestrated: validates then edits plan)
+/scaffold migrate --cleanup   (LLM-orchestrated: finds markers, removes files)
+/scaffold migrate --rollback  (LLM-orchestrated: displays plan's rollback section)
 ```
 
 Steps 1, 7-9 follow the same patterns as the main SKILL.md. Steps 2-6 are migration-specific and replace the standard scaffold agent dispatch.
+
+`--next`, `--cleanup`, and `--rollback` have no dedicated scripts — they are LLM-driven
+operations on MIGRATION-PLAN.md. See [Sub-command Flows](#sub-command-flows) for details
+and limitations.
