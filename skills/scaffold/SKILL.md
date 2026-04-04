@@ -38,6 +38,8 @@ Before mode routing, extract flags from `$ARGUMENTS`:
 - `--all` or `--yes`: Set MODE=automatic, skip mode selection prompt, generate everything detected
 - `--interactive` or `-i`: Set MODE=interactive, skip mode selection prompt, go straight to suggestion screen
 - `--minimal`: Set MINIMAL_MODE=true, skip Steps 2.5-2.7 entirely, generate only CLAUDE.md + safety rules
+- If both `--all` and `--interactive` are present: `--interactive` wins (user explicitly asked for manual selection)
+- If `--minimal` is combined with any other mode flag: `--minimal` always wins (safety override)
 - If no mode flag is present, set MODE=unset (will prompt in Step 2.6)
 - Strip flags from `$ARGUMENTS` before passing to mode routing
 
@@ -116,7 +118,7 @@ How do you want to set up AI for this repo?
 [A] Automatic — Generate recommended setup (you review after)
 [I] Interactive — Walk through suggestions, pick what you want
 
-(tip: use --all or --interactive next time to skip this prompt)
+(tip: use --all/--yes for automatic or --interactive/-i for manual next time)
 ```
 
 **Parse response**:
@@ -146,21 +148,23 @@ Here's what I found in your repo:
   [check] AGENTS.md — Codex agent config
 
 -- SUBAGENTS (pick which ones) ------------------------------
-  {tier} [N] {id} — {description}  ({reason})
-  ...
+  fast [1*] test-runner — Run tests, report failures  (vitest.config.ts found)
+  fast [2*] lint-format — Run linter + formatter  (eslint found)
+  smart [3] code-reviewer — Review PRs for conventions  (87 files, 150+ commits)
+  deep [4] architecture-advisor — Analyze architecture  (large repo)
 
 -- SKILLS ---------------------------------------------------
-  [N] {id} — {description}  ({reason})
-  ...
+  [5*] avoid-ai-slop — Enforce concise AI output  (docs/ directory found)
+  [6] grill-me — Stress-test assumptions
 
 -- INTEGRATIONS (detected in environment) -------------------
-  [N] {id} — {description}
-      Detected: {signals_found}
-  ...
+  [7*] jira — Create/update Jira issues  (JIRA_URL + JIRA_API_TOKEN found)
+  [8] slack — Post notifications  (Slack.app detected)
 
-Type numbers to include (e.g. "1,2,5"), "all", or "none":
+* = pre-selected (recommended for your stack)
+
+Type numbers to include (e.g. "1,2,5"), "all", "none", or Enter to accept defaults:
 Pre-selected: {smart_default_numbers}
-(press Enter to accept defaults)
 ```
 
 **Building the display**:
@@ -172,7 +176,7 @@ Pre-selected: {smart_default_numbers}
    - Sonnet tier: show as `smart [N]` with note `(Sonnet, ~$0.01/run)`
    - Opus tier: show as `deep [N]` with note `(Opus, ~$0.05/run)`
    
-   For each subagent, show its detection reason from `detectionReasons` in the manifest (e.g., "vitest.config.ts found", "50+ commits"). Items marked as `smartDefault: true` are shown with a filled indicator.
+   For each subagent, show its detection reason from `detectionReasons` in the manifest. Items marked `smartDefault: true` get a `*` after the number (e.g., `fast [1*]`). Add a legend line after the last item: `* = pre-selected (recommended for your stack)`.
 
 3. **SKILLS section**: List productivity skills. Show the reason (e.g., "docs/ directory found").
 
