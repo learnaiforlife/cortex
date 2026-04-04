@@ -18,6 +18,9 @@
 #
 # Requirements: bash, python3, jq (recommended but not required)
 
+# NOTE: set -e is intentionally omitted. Individual tool install failures should
+# not abort the entire run — the script reports per-tool status (INSTALLED,
+# FAILED, SKIPPED, REJECTED) and continues to the next tool gracefully.
 set -uo pipefail
 
 # ---------------------------------------------------------------------------
@@ -61,6 +64,10 @@ ALLOWED_PREFIXES=(
 
 validate_command() {
   local cmd="$1"
+  # Reject shell metacharacters that could chain or inject commands
+  if [[ "$cmd" =~ [\;\&\|\$\`\>\<\(\)] ]] || [[ "$cmd" == *$'\n'* ]]; then
+    return 1
+  fi
   for prefix in "${ALLOWED_PREFIXES[@]}"; do
     if [[ "$cmd" == "$prefix"* ]]; then
       return 0
@@ -90,14 +97,15 @@ log "Mode: $([ "$DRY_RUN" = true ] && echo 'dry-run' || echo 'install')"
 # ---------------------------------------------------------------------------
 
 # Use python3 to parse JSON (jq may not be installed yet — that's what we're installing!)
+# Pass manifest path via sys.argv to avoid shell injection
 TOOLS_JSON=$(python3 -c "
 import json, sys
-with open('$MANIFEST_FILE') as f:
+with open(sys.argv[1]) as f:
     data = json.load(f)
 tools = data if isinstance(data, list) else data.get('tools', data.get('recommended', []))
 for t in tools:
     print(json.dumps(t))
-" 2>/dev/null)
+" "$MANIFEST_FILE" 2>/dev/null)
 
 if [ -z "$TOOLS_JSON" ]; then
   echo '{"error": "Failed to parse manifest JSON"}'
@@ -232,35 +240,45 @@ fi
 
 log "Complete: installed=$INSTALL_COUNT failed=$FAIL_COUNT skipped=$SKIP_COUNT rejected=$REJECT_COUNT"
 
-# Build JSON report using python3
+# Build JSON report using python3 — pass results via temp file to avoid injection
+RESULTS_FILE=$(mktemp)
+trap 'rm -f "$RESULTS_FILE"' EXIT
+printf '%s\n' "${RESULTS[@]}" > "$RESULTS_FILE"
+
+DRY_RUN_PY=$( [ "$DRY_RUN" = true ] && echo 'True' || echo 'False' )
+
 python3 -c "
-import json
+import json, sys
+
+results_file, dry_run_str, installed, failed, skipped, rejected, total, log_file = sys.argv[1:]
 
 results = []
-for line in '''$(printf '%s\n' "${RESULTS[@]}")'''.strip().split('\n'):
-    if not line.strip():
-        continue
-    parts = line.split(None, 2)
-    if len(parts) >= 2:
-        entry = {'status': parts[0], 'id': parts[1]}
-        if len(parts) >= 3:
-            entry['detail'] = parts[2]
-        results.append(entry)
+with open(results_file) as f:
+    for line in f:
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split(None, 2)
+        if len(parts) >= 2:
+            entry = {'status': parts[0], 'id': parts[1]}
+            if len(parts) >= 3:
+                entry['detail'] = parts[2]
+            results.append(entry)
 
 report = {
-    'dryRun': $( [ "$DRY_RUN" = true ] && echo 'True' || echo 'False' ),
+    'dryRun': dry_run_str == 'True',
     'results': results,
     'summary': {
-        'installed': $INSTALL_COUNT,
-        'failed': $FAIL_COUNT,
-        'skipped': $SKIP_COUNT,
-        'rejected': $REJECT_COUNT,
-        'total': $TOOL_COUNT
+        'installed': int(installed),
+        'failed': int(failed),
+        'skipped': int(skipped),
+        'rejected': int(rejected),
+        'total': int(total)
     },
-    'logFile': '$LOG_FILE'
+    'logFile': log_file
 }
 
 print(json.dumps(report, indent=2))
-" 2>/dev/null
+" "$RESULTS_FILE" "$DRY_RUN_PY" "$INSTALL_COUNT" "$FAIL_COUNT" "$SKIP_COUNT" "$REJECT_COUNT" "$TOOL_COUNT" "$LOG_FILE" 2>/dev/null
 
 exit 0

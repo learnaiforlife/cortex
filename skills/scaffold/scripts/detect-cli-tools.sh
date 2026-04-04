@@ -16,6 +16,17 @@ set -uo pipefail
 
 REPO_DIR="${1:-.}"
 
+# JSON-safe string escaping — prevents injection from version strings
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"    # backslashes first
+  s="${s//\"/\\\"}"    # double quotes
+  s="${s//$'\t'/\\t}"  # tabs
+  s="${s//$'\n'/\\n}"  # newlines
+  s="${s//$'\r'/\\r}"  # carriage returns
+  printf '%s' "$s"
+}
+
 # Timeout wrapper — 3 seconds max per command
 safe_run() {
   if command -v timeout >/dev/null 2>&1; then
@@ -50,18 +61,23 @@ sys.exit(1)
 check_cli() {
   local name="$1"
   local bin="${2:-$name}"
+  local esc_name esc_bin
+  esc_name=$(json_escape "$name")
+  esc_bin=$(json_escape "$bin")
   if safe_run command -v "$bin" >/dev/null 2>&1; then
     local ver_output
     ver_output=$(safe_run "$bin" --version 2>&1 || true)
     local version
     version=$(extract_version "$ver_output")
     if [ -n "$version" ]; then
-      printf '"%s": {"installed": true, "version": "%s", "binary": "%s"}' "$name" "$version" "$bin"
+      local esc_ver
+      esc_ver=$(json_escape "$version")
+      printf '"%s": {"installed": true, "version": "%s", "binary": "%s"}' "$esc_name" "$esc_ver" "$esc_bin"
     else
-      printf '"%s": {"installed": true, "version": null, "binary": "%s"}' "$name" "$bin"
+      printf '"%s": {"installed": true, "version": null, "binary": "%s"}' "$esc_name" "$esc_bin"
     fi
   else
-    printf '"%s": {"installed": false, "version": null, "binary": "%s"}' "$name" "$bin"
+    printf '"%s": {"installed": false, "version": null, "binary": "%s"}' "$esc_name" "$esc_bin"
   fi
 }
 
@@ -142,7 +158,7 @@ detect_ai_config() {
     rg_status="configured-in-profile"
   fi
 
-  printf '{"useBuiltinRipgrep": "%s"}' "$rg_status"
+  printf '{"useBuiltinRipgrep": "%s"}' "$(json_escape "$rg_status")"
 }
 
 # ---------------------------------------------------------------------------
@@ -171,10 +187,10 @@ HAS_DOCKER=false
 
 # Start JSON
 echo "{"
-printf '  "platform": "%s",\n' "$PLATFORM"
-printf '  "packageManager": "%s",\n' "$PKG_MANAGER"
-printf '  "shell": "%s",\n' "$SHELL_NAME"
-printf '  "shellConfig": "%s",\n' "$SHELL_CONFIG"
+printf '  "platform": "%s",\n' "$(json_escape "$PLATFORM")"
+printf '  "packageManager": "%s",\n' "$(json_escape "$PKG_MANAGER")"
+printf '  "shell": "%s",\n' "$(json_escape "$SHELL_NAME")"
+printf '  "shellConfig": "%s",\n' "$(json_escape "$SHELL_CONFIG")"
 printf '  "repoContext": %s,\n' "$REPO_CONTEXT"
 printf '  "aiAgentConfig": %s,\n' "$AI_CONFIG"
 

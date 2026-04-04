@@ -348,6 +348,62 @@
       ]
     },
     {
+      "id": "toolbox-detect-cli-tools",
+      "prompt": "/scaffold-toolbox detect test/fixtures/nextjs-app",
+      "fixture": "test/fixtures/nextjs-app",
+      "expected_output": "detect-cli-tools.sh produces valid JSON with platform, packageManager, and tools",
+      "files": [],
+      "expectations": [
+        "detect-cli-tools.sh outputs valid JSON to stdout",
+        "JSON contains 'platform' field (darwin or linux)",
+        "JSON contains 'packageManager' field",
+        "JSON contains 'tools' object with installed tool entries",
+        "JSON contains 'summary' with installed count >= 0"
+      ],
+      "assertions": [
+        { "type": "script_output_valid_json", "script": "detect-cli-tools.sh", "args": "test/fixtures/nextjs-app" },
+        { "type": "output_contains", "pattern": "platform|packageManager" },
+        { "type": "output_contains", "pattern": "\"installed\"" }
+      ]
+    },
+    {
+      "id": "toolbox-detect-empty-repo",
+      "prompt": "/scaffold-toolbox detect /tmp/cortex-empty-test",
+      "expected_output": "detect-cli-tools.sh handles empty directory gracefully with valid JSON",
+      "files": [],
+      "expectations": [
+        "detect-cli-tools.sh outputs valid JSON even on empty directory",
+        "JSON contains 'summary' with installed >= 0",
+        "Script exits 0 (no crash on missing project files)",
+        "No ecosystem-specific tools are scanned (no package.json etc.)"
+      ],
+      "assertions": [
+        { "type": "script_output_valid_json", "script": "detect-cli-tools.sh", "args": "/tmp/cortex-empty-test" },
+        { "type": "output_contains", "pattern": "\"installed\"" },
+        { "type": "output_contains", "pattern": "\"summary\"" }
+      ]
+    },
+    {
+      "id": "toolbox-catalog-completeness",
+      "prompt": "/scaffold-toolbox catalog-check",
+      "expected_output": "cli-tools-catalog.md contains entries for all essential tools",
+      "files": [],
+      "expectations": [
+        "Catalog has entry for ripgrep (core search tool)",
+        "Catalog has entry for fd (file finder)",
+        "Catalog has entry for gh (GitHub CLI)",
+        "Catalog has entry for jq (JSON processor)",
+        "Catalog has entry for shellcheck (shell linter)"
+      ],
+      "assertions": [
+        { "type": "file_contains", "path": "skills/scaffold/references/cli-tools-catalog.md", "pattern": "ripgrep" },
+        { "type": "file_contains", "path": "skills/scaffold/references/cli-tools-catalog.md", "pattern": "### fd" },
+        { "type": "file_contains", "path": "skills/scaffold/references/cli-tools-catalog.md", "pattern": "### gh" },
+        { "type": "file_contains", "path": "skills/scaffold/references/cli-tools-catalog.md", "pattern": "### jq|\\bjq\\b" },
+        { "type": "file_contains", "path": "skills/scaffold/references/cli-tools-catalog.md", "pattern": "### shellcheck" }
+      ]
+    },
+    {
       "id": "migrate-detect-dual-language",
       "prompt": "/scaffold migrate test/fixtures/migration-py-to-ts",
       "fixture": "test/fixtures/migration-py-to-ts",
