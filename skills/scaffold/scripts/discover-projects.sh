@@ -11,6 +11,16 @@
 
 set -uo pipefail
 
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"    # backslashes first
+  s="${s//\"/\\\"}"    # double quotes
+  s="${s//$'\t'/\\t}"  # tabs
+  s="${s//$'\n'/\\n}"  # newlines
+  s="${s//$'\r'/\\r}"  # carriage returns
+  printf '%s' "$s"
+}
+
 # Default scan directories
 if [ $# -eq 0 ]; then
   SCAN_DIRS=("$HOME/Documents" "$HOME/workspace" "$HOME/projects" "$HOME/code" "$HOME/Desktop")

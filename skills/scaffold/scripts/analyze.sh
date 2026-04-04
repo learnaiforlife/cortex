@@ -7,8 +7,18 @@ set -euo pipefail
 
 REPO_DIR="${1:-.}"
 
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"    # backslashes first
+  s="${s//\"/\\\"}"    # double quotes
+  s="${s//$'\t'/\\t}"  # tabs
+  s="${s//$'\n'/\\n}"  # newlines
+  s="${s//$'\r'/\\r}"  # carriage returns
+  printf '%s' "$s"
+}
+
 echo "{"
-echo "  \"rootDir\": \"$REPO_DIR\","
+echo "  \"rootDir\": \"$(json_escape "$REPO_DIR")\","
 echo "  \"scannedAt\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\","
 
 # Detect languages by file count

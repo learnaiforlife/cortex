@@ -16,6 +16,16 @@
 
 set -uo pipefail
 
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"    # backslashes first
+  s="${s//\"/\\\"}"    # double quotes
+  s="${s//$'\t'/\\t}"  # tabs
+  s="${s//$'\n'/\\n}"  # newlines
+  s="${s//$'\r'/\\r}"  # carriage returns
+  printf '%s' "$s"
+}
+
 # ── Helper: timeout command (macOS compatibility) ────────────────────────────
 safe_timeout() {
   local secs="$1"; shift
@@ -36,7 +46,7 @@ signals_json() {
   printf "["
   for sig in "$@"; do
     [ "$first" = true ] && first=false || printf ", "
-    printf '"%s"' "$sig"
+    printf '"%s"' "$(json_escape "$sig")"
   done
   printf "]"
 }
@@ -119,7 +129,7 @@ build_entry() {
   shift
   local detected="false"
   [ "$#" -gt 0 ] && detected="true"
-  printf '  "%s": {"detected": %s, "signals": %s}' "$name" "$detected" "$(signals_json "$@")"
+  printf '  "%s": {"detected": %s, "signals": %s}' "$(json_escape "$name")" "$detected" "$(signals_json "$@")"
 }
 
 {

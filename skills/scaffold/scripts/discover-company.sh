@@ -14,6 +14,16 @@ set -uo pipefail
 
 PROJECTS_FILE="${1:-}"
 
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"    # backslashes first
+  s="${s//\"/\\\"}"    # double quotes
+  s="${s//$'\t'/\\t}"  # tabs
+  s="${s//$'\n'/\\n}"  # newlines
+  s="${s//$'\r'/\\r}"  # carriage returns
+  printf '%s' "$s"
+}
+
 # If no file arg and stdin is piped, save stdin to a temp file
 if [ -z "$PROJECTS_FILE" ] || [ ! -f "$PROJECTS_FILE" ]; then
   if [ ! -t 0 ]; then

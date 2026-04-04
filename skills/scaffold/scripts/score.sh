@@ -16,6 +16,16 @@ set -euo pipefail
 
 REPO_DIR="${1:-.}"
 
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"    # backslashes first
+  s="${s//\"/\\\"}"    # double quotes
+  s="${s//$'\t'/\\t}"  # tabs
+  s="${s//$'\n'/\\n}"  # newlines
+  s="${s//$'\r'/\\r}"  # carriage returns
+  printf '%s' "$s"
+}
+
 # Accumulators for each dimension (out of 25)
 FORMAT_SCORE=0
 SPECIFICITY_SCORE=0
@@ -268,7 +278,7 @@ cat <<EOF
     "completeness": { "score": $COMPLETENESS_SCORE, "max": $COMPLETENESS_MAX },
     "structural_quality": { "score": $STRUCTURE_SCORE, "max": $STRUCTURE_MAX }
   },
-  "repo_dir": "$REPO_DIR",
+  "repo_dir": "$(json_escape "$REPO_DIR")",
   "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 EOF

@@ -22,6 +22,16 @@
 
 set -uo pipefail
 
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"    # backslashes first
+  s="${s//\"/\\\"}"    # double quotes
+  s="${s//$'\t'/\\t}"  # tabs
+  s="${s//$'\n'/\\n}"  # newlines
+  s="${s//$'\r'/\\r}"  # carriage returns
+  printf '%s' "$s"
+}
+
 PROJECTS_FILE="${1:-}"
 TIMEOUT_CMD="timeout"
 
@@ -80,11 +90,10 @@ if command -v docker &>/dev/null; then
     FIRST=true
     while IFS=$'\t' read -r cname cimage cstatus cports; do
       [ -z "$cname" ] && continue
-      # Escape double quotes in fields
-      cname="${cname//\"/\\\"}"
-      cimage="${cimage//\"/\\\"}"
-      cstatus="${cstatus//\"/\\\"}"
-      cports="${cports//\"/\\\"}"
+      cname=$(json_escape "$cname")
+      cimage=$(json_escape "$cimage")
+      cstatus=$(json_escape "$cstatus")
+      cports=$(json_escape "$cports")
       [ "$FIRST" = true ] && FIRST=false || DOCKER_JSON+=","
       DOCKER_JSON+=$(printf '\n    {"name": "%s", "image": "%s", "status": "%s", "ports": "%s"}' "$cname" "$cimage" "$cstatus" "$cports")
     done <<< "$RAW"
@@ -139,13 +148,13 @@ except Exception:
         SVC_FIRST=true
         while IFS= read -r svc; do
           [ -z "$svc" ] && continue
-          svc="${svc//\"/\\\"}"
+          svc=$(json_escape "$svc")
           [ "$SVC_FIRST" = true ] && SVC_FIRST=false || SVC_ARRAY+=", "
           SVC_ARRAY+="\"$svc\""
         done <<< "$SERVICES"
         SVC_ARRAY+="]"
         [ "$FIRST" = true ] && FIRST=false || COMPOSE_JSON+=","
-        COMPOSE_JSON+=$(printf '\n    {"path": "%s", "services": %s}' "$DC_FILE" "$SVC_ARRAY")
+        COMPOSE_JSON+=$(printf '\n    {"path": "%s", "services": %s}' "$(json_escape "$DC_FILE")" "$SVC_ARRAY")
       fi
     fi
   done <<< "$PATHS"

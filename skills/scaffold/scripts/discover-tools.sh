@@ -14,6 +14,16 @@
 
 set -uo pipefail
 
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"    # backslashes first
+  s="${s//\"/\\\"}"    # double quotes
+  s="${s//$'\t'/\\t}"  # tabs
+  s="${s//$'\n'/\\n}"  # newlines
+  s="${s//$'\r'/\\r}"  # carriage returns
+  printf '%s' "$s"
+}
+
 # Timeout wrapper — 3 seconds max per command
 safe_run() {
   if command -v timeout >/dev/null 2>&1; then
@@ -55,12 +65,12 @@ check_cli() {
     local version
     version=$(extract_version "$ver_output")
     if [ -n "$version" ]; then
-      printf '    "%s": {"installed": true, "version": "%s"}' "$name" "$version"
+      printf '    "%s": {"installed": true, "version": "%s"}' "$(json_escape "$name")" "$(json_escape "$version")"
     else
-      printf '    "%s": {"installed": true, "version": null}' "$name"
+      printf '    "%s": {"installed": true, "version": null}' "$(json_escape "$name")"
     fi
   else
-    printf '    "%s": {"installed": false, "version": null}' "$name"
+    printf '    "%s": {"installed": false, "version": null}' "$(json_escape "$name")"
   fi
 }
 
@@ -136,9 +146,9 @@ for pm in $PKG_MANAGERS; do
   display_name="$pm"
   [ "$pm" = "mvn" ] && display_name="maven"
   if safe_run command -v "$pm" >/dev/null 2>&1; then
-    printf '    "%s": true' "$display_name"
+    printf '    "%s": true' "$(json_escape "$display_name")"
   else
-    printf '    "%s": false' "$display_name"
+    printf '    "%s": false' "$(json_escape "$display_name")"
   fi
 done
 echo ""

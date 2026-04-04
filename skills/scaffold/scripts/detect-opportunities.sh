@@ -9,6 +9,16 @@ set -uo pipefail
 
 REPO_DIR="${1:-.}"
 
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"    # backslashes first
+  s="${s//\"/\\\"}"    # double quotes
+  s="${s//$'\t'/\\t}"  # tabs
+  s="${s//$'\n'/\\n}"  # newlines
+  s="${s//$'\r'/\\r}"  # carriage returns
+  printf '%s' "$s"
+}
+
 # --- Subagent signals ---
 detect_test_framework() {
   local found=""
@@ -117,9 +127,13 @@ detect_slack() {
   local score=0
   [ -n "${SLACK_BOT_TOKEN:-}" ] && score=$((score + 40))
   [ -n "${SLACK_WEBHOOK_URL:-}" ] && score=$((score + 30))
-  [ -d "/Applications/Slack.app" ] && score=$((score + 20))
   if [ -f "$REPO_DIR/package.json" ]; then
     grep -qE '@slack/' "$REPO_DIR/package.json" 2>/dev/null && score=$((score + 30))
+  fi
+  # Machine-level signal: Slack.app is not project evidence, cap at 10
+  # Only add if project-level signals already exist
+  if [ "$score" -gt 0 ] && [ -d "/Applications/Slack.app" ]; then
+    score=$((score + 10))
   fi
   echo "$score"
 }
@@ -232,12 +246,12 @@ PAGERDUTY_SCORE=$(detect_pagerduty)
 cat <<ENDJSON
 {
   "subagentSignals": {
-    "testFramework": "$TEST_FW",
-    "linter": "$LINTER",
-    "buildTool": "$BUILD_TOOL",
+    "testFramework": "$(json_escape "$TEST_FW")",
+    "linter": "$(json_escape "$LINTER")",
+    "buildTool": "$(json_escape "$BUILD_TOOL")",
     "gitCommits": $GIT_COMMITS,
     "sourceFileCount": $SRC_COUNT,
-    "ciSystem": "$CI_SYSTEM"
+    "ciSystem": "$(json_escape "$CI_SYSTEM")"
   },
   "integrationScores": {
     "jira": $JIRA_SCORE,

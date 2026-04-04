@@ -16,6 +16,16 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 START_TIME=$(date +%s)
 
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"    # backslashes first
+  s="${s//\"/\\\"}"    # double quotes
+  s="${s//$'\t'/\\t}"  # tabs
+  s="${s//$'\n'/\\n}"  # newlines
+  s="${s//$'\r'/\\r}"  # carriage returns
+  printf '%s' "$s"
+}
+
 # Default directories
 if [ $# -eq 0 ]; then
   SCAN_DIRS=("$HOME/Documents" "$HOME/workspace" "$HOME/projects" "$HOME/code" "$HOME/Desktop")
@@ -61,6 +71,7 @@ PID_SERVICES=$!
 bash "$SCRIPT_DIR/discover-integrations.sh" > "$TMPDIR_DISCOVER/integrations.json" 2>"$TMPDIR_DISCOVER/integrations.err" &
 PID_INTEGRATIONS=$!
 
+# No repo-dir arg = global detection (reports installed tools regardless of project context)
 bash "$SCRIPT_DIR/detect-cli-tools.sh" > "$TMPDIR_DISCOVER/cli-tools.json" 2>"$TMPDIR_DISCOVER/cli-tools.err" &
 PID_CLI_TOOLS=$!
 
