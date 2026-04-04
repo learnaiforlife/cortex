@@ -95,10 +95,10 @@ The following files were updated to reflect current codebase reality:
    - Evidence: Previously inconsistent counts in `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules/project-context.mdc`.
    - Fix direction: Keep docs tied to generated inventory checks during releases.
 
-3. **`auto-improve.sh` prerequisite comment mismatches behavior**
-   - Why it matters: Comment implies git stashing that script does not perform.
+3. **`auto-improve.sh` prerequisite comment mismatches behavior** — FIXED
+   - Why it matters: Comment implied git stashing and autonomous editing that script does not perform.
    - Evidence: Header comment in `skills/scaffold/scripts/auto-improve.sh`.
-   - Fix direction: Correct comment or implement explicit clean/stash handling.
+   - Fix: Rewrote auto-improve.sh as measurement-only tool. All user-facing text updated to match. See cursor/auto-improve-workflow-honesty-a60e branch.
 
 4. **Plugin description omits discover mode**
    - Why it matters: Product messaging differs from actual command surface.

@@ -43,7 +43,7 @@ cortex/
       install-cli-tools.sh     # Safe cross-platform CLI tool installer (Toolbox mode)
       score.sh                 # Quantitative scoring (0-100, 4 dimensions)
       run-skill-evals.sh       # Assertion-based eval runner (18 cases)
-      auto-improve.sh          # Autoresearch loop orchestrator
+      auto-improve.sh          # Quality measurement (scores fixtures, reports weakest dimension)
       validate.sh              # Format validation
       log-result.sh            # Append-only TSV logger
       audit-existing.sh        # Existing setup inventory for audit mode
@@ -147,8 +147,8 @@ bash skills/scaffold/scripts/validate.sh <output-dir> # Format validation
 # Analysis
 bash skills/scaffold/scripts/analyze.sh <repo-dir>    # Heuristic pre-scan
 
-# Improvement
-bash skills/scaffold/scripts/auto-improve.sh           # Run autoresearch loop
+# Quality Measurement
+bash skills/scaffold/scripts/auto-improve.sh           # Measure scaffold quality (scores fixtures, no edits)
 bash skills/scaffold/scripts/log-result.sh             # Log results to TSV
 
 # Discovery

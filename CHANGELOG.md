@@ -22,9 +22,9 @@
   - SKILL-monorepo.md variant for Turborepo/Nx/Lerna/pnpm workspaces
   - SKILL-minimal.md variant for small projects (<10 files, no framework)
   - variant-dispatcher agent for auto-extracting DERIVED changes
-- **Scheduled Auto-Improve**: Automated weekly improvement + monthly re-discovery
+- **Scheduled Quality Measurement**: Weekly quality scoring + monthly re-discovery
   - schedule-autorun.sh with launchd (macOS) and cron (Linux) support
-  - Post-scaffold hook suggesting auto-improve when score < 70
+  - Post-scaffold hook suggesting quality check when score < 70
 - **Evolution Taxonomy**: FIX/DERIVED/CAPTURED classification for skill-improver changes
 - **Per-Subagent Metrics**: Extended log-result.sh with qr_verdict, qr_score, improver_ran, improver_helped, subagent_timeouts
 - **Post-Execution Suggestions**: Actionable guidance when scaffold score < 70
@@ -58,4 +58,4 @@
 - Quality scoring engine (score.sh) with 4 dimensions
 - 9 eval cases across 3 test fixtures
 - Official plugins catalog and MCP server catalog
-- Autoresearch-inspired auto-improve loop
+- Autoresearch-inspired quality measurement and improvement workflow

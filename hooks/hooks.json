@@ -21,7 +21,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -f $HOME/.cortex/last-scaffold-score.txt ]; then SCORE=$(grep -o '[0-9]\\+' $HOME/.cortex/last-scaffold-score.txt 2>/dev/null | head -1); SCORE=${SCORE:-100}; if [ \"$SCORE\" -lt 70 ] 2>/dev/null; then echo 'Cortex: Last scaffold scored '$SCORE'/100. Run /scaffold optimize auto-improve for autonomous improvement.' >&2; fi; fi; exit 0"
+            "command": "if [ -f $HOME/.cortex/last-scaffold-score.txt ]; then SCORE=$(grep -o '[0-9]\\+' $HOME/.cortex/last-scaffold-score.txt 2>/dev/null | head -1); SCORE=${SCORE:-100}; if [ \"$SCORE\" -lt 70 ] 2>/dev/null; then echo 'Cortex: Last scaffold scored '$SCORE'/100. Run /scaffold optimize auto-improve to measure and target the weakest dimension.' >&2; fi; fi; exit 0"
           }
         ]
       }
