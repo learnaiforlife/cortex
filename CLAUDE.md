@@ -6,14 +6,14 @@ AI development scaffolding plugin for Claude Code. Analyzes any repo and generat
 
 ```
 skills/scaffold/           # Main skill (SKILL.md) + variants
-  agents/                  # 13 specialized subagents (repo-analyzer, skill-recommender, quality-reviewer, etc.)
-  scripts/                 # 16 bash scripts (analyze, score, discover, detect-opportunities, evals)
-  references/              # 10 catalogs (official plugins, MCP servers, file formats, templates)
+  agents/                  # 20 specialized subagents (repo-analyzer, skill-recommender, toolbox-recommender, quality-reviewer, etc.)
+  scripts/                 # 21 bash scripts (analyze, score, discover, detect-cli-tools, install-cli-tools, evals)
+  references/              # 12 catalogs (official plugins, MCP servers, CLI tools, file formats, templates)
   variants/                # Variant dispatch (monorepo, minimal) + dispatch-table.json
-  templates/               # 17 subagent templates + 4 soft skill templates
-  evals/                   # 18 assertion-based test cases (evals.json)
+  templates/               # 21 subagent templates + 4 soft skill templates
+  evals/                   # 28 assertion-based test cases (evals.json)
 claude-code-auto-research/ # Python autoresearch loop (run.py, measure.py, prepare.py, progress.py)
-commands/                  # 4 slash commands (scaffold, scaffold-audit, scaffold-optimize, scaffold-discover)
+commands/                  # 6 slash commands (scaffold, scaffold-audit, scaffold-optimize, scaffold-discover, scaffold-toolbox, scaffold-migrate)
 hooks/                     # SessionStart/Stop hooks (hooks.json)
 test/fixtures/             # 3 fixture projects (nextjs-app, python-api, minimal)
 .claude-plugin/            # Plugin metadata (plugin.json)
@@ -29,6 +29,8 @@ test/fixtures/             # 3 fixture projects (nextjs-app, python-api, minimal
                                                               codex-specialist
                                                                    v
                                                             Quality Review --> Write Files --> Score + Log
+
+/scaffold-toolbox --> detect-cli-tools.sh --> toolbox-recommender --> Present --> Install (dry-run first)
 ```
 
 ## Development Commands
@@ -36,7 +38,7 @@ test/fixtures/             # 3 fixture projects (nextjs-app, python-api, minimal
 ```bash
 ./install.sh                                          # Install plugin to ~/.claude/skills/scaffold/
 bash skills/scaffold/scripts/score.sh <output-dir>    # Score scaffold output (0-100 JSON)
-bash skills/scaffold/scripts/run-skill-evals.sh       # Run assertion-based evals (18 test cases)
+bash skills/scaffold/scripts/run-skill-evals.sh       # Run assertion-based evals (28 test cases)
 bash skills/scaffold/scripts/validate.sh <output-dir> # Format validation
 bash skills/scaffold/scripts/auto-improve.sh           # Autoresearch loop (measure-edit-measure)
 bash skills/scaffold/scripts/analyze.sh <repo-dir>    # Heuristic pre-scan (ProjectProfile JSON)
@@ -45,7 +47,7 @@ bash skills/scaffold/scripts/analyze.sh <repo-dir>    # Heuristic pre-scan (Proj
 ## Testing
 
 - Fixtures in `test/fixtures/` (nextjs-app, python-api, minimal)
-- Evals in `skills/scaffold/evals/evals.json` with 18 test cases and 15 assertion types
+- Evals in `skills/scaffold/evals/evals.json` with 28 test cases and 15 assertion types
 - Autoresearch loop in `claude-code-auto-research/` (Python 3.10+)
 - Score dimensions: format compliance, specificity, completeness, structural quality (25 pts each)
 
@@ -56,7 +58,7 @@ bash skills/scaffold/scripts/analyze.sh <repo-dir>    # Heuristic pre-scan (Proj
 - **Three-tool parity**: Every scaffold run generates for Claude Code, Cursor, AND Codex
 - **Quality gate**: quality-reviewer subagent must PASS before files are written
 - **Variant dispatch**: Monorepo/minimal repos get specialized SKILL variants via `dispatch-table.json`
-- **Subagents are markdown**: All 13 agents live in `skills/scaffold/agents/*.md` with YAML frontmatter
+- **Subagents are markdown**: All 20 agents live in `skills/scaffold/agents/*.md` with YAML frontmatter
 
 ## Things to Avoid
 
