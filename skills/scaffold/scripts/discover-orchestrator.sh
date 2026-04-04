@@ -5,11 +5,13 @@
 # Usage: discover-orchestrator.sh [dir1 dir2 ...]
 #   Defaults: ~/Documents ~/workspace ~/projects ~/code ~/Desktop
 #
-# Output: DeveloperDNA JSON to stdout
+# Output: DeveloperDNA JSON to stdout (includes discoveryStatus for partial failures)
 # Performance: < 60 seconds for typical machine (100 repos)
 #
-# Privacy: All scanning is local. Nothing leaves the machine.
+# Privacy: All scanning is local via shell scripts. No data is sent externally.
 # No environment variable VALUES are read — only existence is checked.
+# Note: The DeveloperDNA output is later processed by AI subagents in the
+# Discover pipeline (Steps D4+). This script itself makes no model calls.
 
 set -uo pipefail
 
@@ -75,29 +77,64 @@ PID_INTEGRATIONS=$!
 bash "$SCRIPT_DIR/detect-cli-tools.sh" > "$TMPDIR_DISCOVER/cli-tools.json" 2>"$TMPDIR_DISCOVER/cli-tools.err" &
 PID_CLI_TOOLS=$!
 
-# Wait for all parallel jobs
-wait $PID_PROJECTS 2>/dev/null
-echo "  Projects:     done" >&2
-wait $PID_TOOLS 2>/dev/null
-echo "  Tools:        done" >&2
-wait $PID_SERVICES 2>/dev/null
-echo "  Services:     done" >&2
-wait $PID_INTEGRATIONS 2>/dev/null
-echo "  Integrations: done" >&2
-wait $PID_CLI_TOOLS 2>/dev/null
-echo "  CLI Tools:    done" >&2
+# Track per-phase exit codes and errors
+PHASE_FAILURES=()
+
+wait_and_report() {
+  local pid="$1"
+  local label="$2"
+  local err_file="$3"
+  wait "$pid" 2>/dev/null
+  local exit_code=$?
+  if [ $exit_code -ne 0 ]; then
+    local err_msg
+    err_msg=$(head -c 200 "$err_file" 2>/dev/null || echo "unknown error")
+    echo "  $label:  FAILED (exit $exit_code)" >&2
+    PHASE_FAILURES+=("${label}:${exit_code}:${err_msg}")
+  else
+    echo "  $label:  done" >&2
+  fi
+}
+
+wait_and_report $PID_PROJECTS   "projects"     "$TMPDIR_DISCOVER/projects.err"
+wait_and_report $PID_TOOLS      "tools"        "$TMPDIR_DISCOVER/tools.err"
+wait_and_report $PID_SERVICES   "services"     "$TMPDIR_DISCOVER/services.err"
+wait_and_report $PID_INTEGRATIONS "integrations" "$TMPDIR_DISCOVER/integrations.err"
+wait_and_report $PID_CLI_TOOLS  "cli-tools"    "$TMPDIR_DISCOVER/cli-tools.err"
 
 # --- Phase 2: Run company detection (depends on projects output) ---
 echo "Phase 2: Analyzing company signals..." >&2
 
 bash "$SCRIPT_DIR/discover-company.sh" "$TMPDIR_DISCOVER/projects.json" > "$TMPDIR_DISCOVER/company.json" 2>"$TMPDIR_DISCOVER/company.err"
-echo "  Company:      done" >&2
+COMPANY_EXIT=$?
+if [ $COMPANY_EXIT -ne 0 ]; then
+  err_msg=$(head -c 200 "$TMPDIR_DISCOVER/company.err" 2>/dev/null || echo "unknown error")
+  echo "  Company:      FAILED (exit $COMPANY_EXIT)" >&2
+  PHASE_FAILURES+=("company:${COMPANY_EXIT}:${err_msg}")
+else
+  echo "  Company:      done" >&2
+fi
+
+# Report failures summary to stderr
+if [ ${#PHASE_FAILURES[@]} -gt 0 ]; then
+  echo "" >&2
+  echo "WARNING: ${#PHASE_FAILURES[@]} discovery phase(s) failed:" >&2
+  for failure in "${PHASE_FAILURES[@]}"; do
+    label="${failure%%:*}"; rest="${failure#*:}"
+    code="${rest%%:*}"; msg="${rest#*:}"
+    echo "  - $label (exit $code): $msg" >&2
+  done
+  echo "Continuing with partial results." >&2
+fi
 
 # --- Phase 3: Merge everything into DeveloperDNA ---
 echo "Phase 3: Synthesizing DeveloperDNA..." >&2
 
 END_TIME=$(date +%s)
 DURATION=$((END_TIME - START_TIME))
+
+# Pass phase failure info to the Python merger via an env var
+export PHASE_FAILURES_LIST="${PHASE_FAILURES[*]}"
 
 python3 - "$TMPDIR_DISCOVER" "$DURATION" "${VALID_DIRS[@]}" <<'PYTHON_DNA'
 import json, os, sys
@@ -108,20 +145,47 @@ tmpdir = sys.argv[1]
 duration = int(sys.argv[2])
 scan_dirs = sys.argv[3:]
 
-# Load all discovery results
+# Parse phase failures passed from shell
+phase_failures_raw = os.environ.get('PHASE_FAILURES_LIST', '')
+
 def load_json(path, default):
+    """Load JSON from a discovery phase output file.
+    Returns (data, error_string). error_string is None on success."""
     try:
         with open(path) as f:
-            return json.load(f)
-    except Exception:
-        return default
+            content = f.read().strip()
+        if not content:
+            return default, "empty output"
+        return json.loads(content), None
+    except json.JSONDecodeError as e:
+        return default, f"invalid JSON: {e}"
+    except Exception as e:
+        return default, str(e)
 
-projects = load_json(os.path.join(tmpdir, 'projects.json'), [])
-tools = load_json(os.path.join(tmpdir, 'tools.json'), {})
-services = load_json(os.path.join(tmpdir, 'services.json'), {})
-integrations = load_json(os.path.join(tmpdir, 'integrations.json'), {})
-company = load_json(os.path.join(tmpdir, 'company.json'), {})
-cli_tools = load_json(os.path.join(tmpdir, 'cli-tools.json'), {})
+# Load all discovery results, tracking per-phase load status
+phase_status = {}
+
+projects, err = load_json(os.path.join(tmpdir, 'projects.json'), [])
+phase_status['projects'] = 'ok' if err is None else f'failed: {err}'
+
+tools, err = load_json(os.path.join(tmpdir, 'tools.json'), {})
+phase_status['tools'] = 'ok' if err is None else f'failed: {err}'
+
+services, err = load_json(os.path.join(tmpdir, 'services.json'), {})
+phase_status['services'] = 'ok' if err is None else f'failed: {err}'
+
+integrations, err = load_json(os.path.join(tmpdir, 'integrations.json'), {})
+phase_status['integrations'] = 'ok' if err is None else f'failed: {err}'
+
+company, err = load_json(os.path.join(tmpdir, 'company.json'), {})
+phase_status['company'] = 'ok' if err is None else f'failed: {err}'
+
+cli_tools, err = load_json(os.path.join(tmpdir, 'cli-tools.json'), {})
+phase_status['cli-tools'] = 'ok' if err is None else f'failed: {err}'
+
+# Determine overall status
+failed_phases = [k for k, v in phase_status.items() if v != 'ok']
+overall = 'complete' if not failed_phases else 'partial'
 
 # --- Compute cross-project patterns ---
 active_projects = [p for p in projects if p.get('activityLevel') in ('active', 'recent')]
@@ -237,11 +301,23 @@ summary = {
 }
 
 # --- Build final DeveloperDNA ---
+discovery_status = {
+    'overall': overall,
+    'phases': phase_status,
+}
+if failed_phases:
+    discovery_status['failedPhases'] = failed_phases
+    discovery_status['warning'] = (
+        f'{len(failed_phases)} phase(s) failed. '
+        'Results may be incomplete.'
+    )
+
 dna = {
     '$schema': 'DeveloperDNA v1.0',
     'discoveredAt': datetime.now(timezone.utc).isoformat(timespec='seconds'),
     'scanDuration': duration,
     'scanDirectories': scan_dirs,
+    'discoveryStatus': discovery_status,
     'projects': projects,
     'tools': tools,
     'services': services,
@@ -260,5 +336,9 @@ mkdir -p "$HOME/.cortex"
 # The caller can pipe stdout to save: discover-orchestrator.sh > ~/.cortex/developer-dna.json
 
 echo "" >&2
-echo "Discovery complete in ${DURATION}s" >&2
+if [ ${#PHASE_FAILURES[@]} -gt 0 ]; then
+  echo "Discovery PARTIALLY complete in ${DURATION}s (${#PHASE_FAILURES[@]} phase(s) failed)" >&2
+else
+  echo "Discovery complete in ${DURATION}s" >&2
+fi
 echo "Use: discover-orchestrator.sh > ~/.cortex/developer-dna.json  to save" >&2

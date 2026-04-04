@@ -7,7 +7,10 @@ Invoke the scaffold skill with: discover $ARGUMENTS
 This scans your development environment for all projects, tools, services, and integrations,
 then generates a cohesive AI setup at both user-level (~/.claude/) and per-project level.
 
-Everything runs locally. Nothing leaves your machine.
+**How it works:**
+- Shell scanning (projects, tools, services, integrations) runs locally and is read-only.
+- After scanning, AI subagents analyze the results to classify patterns and generate setup files.
+  The scanned data (DeveloperDNA) is sent to the model for this analysis step.
 
 Examples:
 - `/scaffold-discover`                           -- scan default directories

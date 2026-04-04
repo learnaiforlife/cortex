@@ -1005,7 +1005,9 @@ When sub-mode is "configure":
 
 When `$ARGUMENTS` starts with "discover", run the machine-wide discovery and multi-level setup generation pipeline. This scans the developer's environment, builds a DeveloperDNA profile, classifies patterns as user-level vs project-level, and generates a cohesive AI setup across all levels.
 
-**Everything runs locally. Nothing leaves the machine. All scanning is read-only.**
+**Privacy model:**
+- **Phase 1 (scanning)** runs locally via shell scripts. It is read-only — no files are modified and no data is sent externally.
+- **Phase 2 (analysis & generation)** dispatches AI subagents that process the scanned DeveloperDNA through the model. The DeveloperDNA (project names, languages, frameworks, tool versions, integration signals) is sent to the model for classification and file generation.
 
 ### Step D1: Permission and Directory Selection
 
@@ -1016,17 +1018,23 @@ Present the user with a permission prompt:
 ```
 Cortex Discover will scan your development environment to build a complete developer profile.
 
-What it scans:
+Phase 1 — Local scanning (shell scripts, read-only):
   - Git repositories in specified directories
   - Installed CLI tools and their versions
   - Running services (port checks only)
   - Integration configs (checks existence only, never reads credentials)
 
+Phase 2 — AI analysis (model/subagent processing):
+  - The scanned results (DeveloperDNA) are sent to AI subagents for pattern
+    classification, generation planning, and setup file creation.
+  - DeveloperDNA includes: project names, paths, languages, frameworks, tool
+    versions, and integration signals. It does NOT include file contents,
+    secrets, or environment variable values.
+
 What it does NOT do:
   - Read file contents beyond package manifests
   - Read environment variable values (only checks if set)
-  - Send any data externally
-  - Modify any existing files
+  - Modify any existing files (until you approve generation)
 
 Directories to scan: [list directories or defaults]
 
@@ -1039,9 +1047,9 @@ If the user wants to customize, ask for a comma-separated list of directories, t
 
 If the user cancels, stop immediately.
 
-### Step D2: Run Discovery Engine
+### Step D2: Run Discovery Engine (Local Only)
 
-Execute the discovery orchestrator (shell scripts only, no LLM calls):
+This step runs shell scripts only — no LLM/subagent calls. All scanning is local and read-only.
 
 ```bash
 bash "${CLAUDE_SKILL_DIR}/scripts/discover-orchestrator.sh" "${SCAN_DIRS[@]}" > /tmp/cortex-developer-dna.json
@@ -1058,6 +1066,15 @@ This runs 6 discovery scripts in parallel:
 **Performance target**: Under 60 seconds for 100 repos.
 
 Read the output JSON. This is the DeveloperDNA.
+
+**Check for partial failures**: The orchestrator outputs a `discoveryStatus` object in the JSON. If any phases failed, report them to the user before continuing:
+
+```
+⚠ Discovery partially complete — the following phases failed:
+  - [phase]: [error summary]
+Results from successful phases are still usable, but the DeveloperDNA may be incomplete.
+Continue with partial results? [Yes / Cancel]
+```
 
 ### Step D3: Preview Results
 
@@ -1107,10 +1124,18 @@ Present a summary of what was discovered. Do NOT proceed to generation without u
 - Per-project CLAUDE.md, agents, skills, rules, MCP configs
 - Only project-specific items (global patterns excluded)
 
-Generate AI setup? [Yes / User-level only / Review full DNA JSON / Cancel]
+Generate AI setup? [Yes / User-level only / Review DNA JSON / Cancel]
 ```
 
+**Handling user choices:**
+- **Yes** → proceed to Step D4.
+- **User-level only** → set `USER_LEVEL_ONLY=true`, proceed to Step D4. In Step D7, skip project-level scaffolding entirely.
+- **Review DNA JSON** → print the full DeveloperDNA JSON (pretty-printed), then re-prompt with the same choices.
+- **Cancel** → stop immediately.
+
 ### Step D4: Classify Patterns (Cross-Project Analysis)
+
+**Note**: From this step onward, DeveloperDNA is processed by AI subagents (model calls). The data sent includes project names, paths, languages, frameworks, and tool versions — but not file contents, secrets, or env var values.
 
 Dispatch the **cross-project-analyzer** subagent:
 
@@ -1136,7 +1161,7 @@ Dispatch the **user-level-generator** subagent:
   - `~/.claude/.mcp.json` — integration MCP servers (if any detected)
   - `~/.claude/rules/*.md` — global rules (company conventions, security, shared testing/linting)
 
-**If `--user-level-only` was specified, skip D7 (project-level scaffolding) and proceed directly to Step D8 (quality review for user-level files) then D9 (write) then D10 (summary).**
+**If `USER_LEVEL_ONLY` is true (set by either the `--user-level-only` CLI flag or the interactive "User-level only" choice in Step D3), skip D7 (project-level scaffolding) and proceed directly to Step D8 (quality review for user-level files) then D9 (write) then D10 (summary).**
 
 ### Step D7: Generate Project-Level Setups (Batch)
 
@@ -1183,10 +1208,20 @@ Write files in this order:
 
 ### Step D10: Discover Summary Report
 
+Check the `discoveryStatus` field in the DeveloperDNA. If `overall` is `"partial"`, include a warnings section. Do not report a partial run as fully successful.
+
 Print a unified summary:
 
 ```
-## Cortex Discover Complete
+## Cortex Discover [Complete / Partially Complete]
+
+### Discovery Status
+[If overall is "partial":]
+  ⚠ The following discovery phases failed:
+    - [phase]: [error from discoveryStatus.phases]
+  Results from failed phases are missing. The generated setup may be incomplete.
+[If overall is "complete":]
+  All discovery phases completed successfully.
 
 ### User-Level Setup (~/.claude/)
 - [path] — [what it contains]
@@ -1212,6 +1247,8 @@ Print a unified summary:
 - [ ] Set environment variable: [VAR_NAME] for [integration]
 - [ ] Install recommended plugins: `claude plugins install [name]`
 - [ ] Review and customize ~/.claude/CLAUDE.md
+[If discoveryStatus.overall is "partial":]
+- [ ] Re-run `/scaffold discover` to retry failed phases
 - ...
 
 ### What's Next
