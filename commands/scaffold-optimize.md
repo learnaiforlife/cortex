@@ -1,10 +1,10 @@
 ---
-description: "Optimize existing skills using evals, freshness checks, or auto-improvement. Usage: /scaffold-optimize [path|auto-improve]"
+description: "Optimize existing skills using evals, freshness checks, or auto-improvement. Usage: /scaffold-optimize [auto-improve]"
 ---
 
 If `$ARGUMENTS` is **"auto-improve"**, invoke the scaffold skill with: optimize auto-improve
 
-Otherwise, invoke the scaffold skill with: optimize $ARGUMENTS
+Otherwise, invoke the scaffold skill with: optimize
 
 **optimize** mode inventories your existing skills, checks evals, verifies CLAUDE.md freshness, and audits MCP configs. Produces an optimization report with actions.
 

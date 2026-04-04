@@ -1,7 +1,7 @@
 ---
 name: scaffold
-description: "The ultimate AI dev setup plugin. Analyzes any repo and generates complete scaffolding (CLAUDE.md, agents, skills, rules, MCP, hooks) for Claude Code, Cursor, and Codex. Also audits, optimizes, and discovers your full dev environment. Use when: setting up a project for AI dev, running '/scaffold', '/scaffold audit', '/scaffold optimize', '/scaffold discover', or any GitHub URL for scaffolding."
-argument-hint: "[github-url-or-path] or [audit|optimize|discover]"
+description: "The ultimate AI dev setup plugin. Analyzes any repo and generates complete scaffolding (CLAUDE.md, agents, skills, rules, MCP, hooks) for Claude Code, Cursor, and Codex. Also audits, optimizes, discovers, and manages CLI tools for your dev environment. Use when: setting up a project for AI dev, running '/scaffold', '/scaffold-audit', '/scaffold-optimize', '/scaffold-discover', '/scaffold-toolbox', '/scaffold-migrate', or any GitHub URL for scaffolding."
+argument-hint: "[github-url-or-path] or [audit|optimize|discover|toolbox|migrate]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, WebFetch
 ---
 
@@ -49,8 +49,8 @@ Determine the mode from `$ARGUMENTS` (after flag stripping):
 
 - If `$ARGUMENTS` starts with **"toolbox"** --> jump to [Toolbox Mode](#toolbox-mode)
 - If `$ARGUMENTS` starts with **"discover"** --> jump to [Discover Mode](#discover-mode)
-- If `$ARGUMENTS` is exactly **"audit"** --> jump to [Audit Mode](#audit-mode)
-- If `$ARGUMENTS` is exactly **"optimize"** --> jump to [Optimize Mode](#optimize-mode)
+- If `$ARGUMENTS` starts with **"audit"** --> jump to [Audit Mode](#audit-mode)
+- If `$ARGUMENTS` starts with **"optimize"** --> jump to [Optimize Mode](#optimize-mode)
 - If `$ARGUMENTS` starts with **"migrate"** --> load `${CLAUDE_SKILL_DIR}/variants/SKILL-migration.md` and follow its instructions (strip "migrate" from arguments, pass remainder as the repo path or flags)
 - Otherwise --> proceed with [Scaffold Mode](#scaffold-mode) (treat `$ARGUMENTS` as a repo URL or path)
 
@@ -588,13 +588,15 @@ Include the **quality score** and **weakest dimension** in the summary output:
 
 ## Audit Mode
 
-When `$ARGUMENTS` is "audit", audit the existing AI dev setup.
+When `$ARGUMENTS` starts with "audit", audit the existing AI dev setup.
+
+Strip "audit" from `$ARGUMENTS`. If a path remains, use it as TARGET_DIR. Otherwise, use the current working directory.
 
 ### Step 1: Dispatch Auditor
 
-Dispatch the **setup-auditor** subagent on the current working directory.
+Dispatch the **setup-auditor** subagent on TARGET_DIR.
 
-- Prompt: "Audit the AI dev setup at `{CWD}`. Scan all Claude Code, Cursor, and Codex configuration files. Check for duplicates, stale references, broken configs, and quality issues. Return your full audit report."
+- Prompt: "Audit the AI dev setup at `{TARGET_DIR}`. Scan all Claude Code, Cursor, and Codex configuration files. Check for duplicates, stale references, broken configs, and quality issues. Return your full audit report."
 
 ### Step 2: Present Report
 
@@ -625,8 +627,8 @@ If the user says no:
 
 When `$ARGUMENTS` starts with "optimize", choose the sub-mode:
 
-- If `$ARGUMENTS` is exactly **"optimize auto-improve"** --> jump to [Auto-Improve Mode](#auto-improve-mode)
-- If `$ARGUMENTS` is exactly **"optimize"** or **"optimize [path]"** --> proceed below
+- If `$ARGUMENTS` is **"optimize auto-improve"** --> jump to [Auto-Improve Mode](#auto-improve-mode)
+- If `$ARGUMENTS` is **"optimize"** --> proceed below
 
 ### Step 1: Inventory Existing Skills
 
