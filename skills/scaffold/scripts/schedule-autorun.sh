@@ -1,6 +1,7 @@
 #!/bin/bash
 # Cortex — Schedule Automated Tasks
-# Sets up periodic auto-improve and re-discover using launchd (macOS) or cron (Linux).
+# Sets up periodic quality measurement and re-discover using launchd (macOS) or cron (Linux).
+# The weekly task runs auto-improve.sh which ONLY measures scores — it does not edit files.
 #
 # Usage: schedule-autorun.sh [setup|remove|status]
 #   setup   — Install scheduled tasks
@@ -143,7 +144,7 @@ WRAPPER_BODY
 setup_macos() {
   mkdir -p "$PLIST_DIR"
 
-  # Task 1: Weekly Auto-Improve — Sunday at 2:00 AM
+  # Task 1: Weekly Quality Measurement — Sunday at 2:00 AM
   cat > "$PLIST_IMPROVE" <<PLIST_EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -214,8 +215,8 @@ PLIST_EOF
   echo "  $PLIST_DISCOVER"
   echo ""
   echo "Next scheduled runs:"
-  echo "  Weekly Auto-Improve:  Next Sunday at 02:00 AM"
-  echo "  Monthly Re-Discover:  1st of next month at 03:00 AM"
+  echo "  Weekly Quality Check:   Next Sunday at 02:00 AM"
+  echo "  Monthly Re-Discover:    1st of next month at 03:00 AM"
 }
 
 setup_linux() {
@@ -243,8 +244,8 @@ setup_linux() {
   crontab -l 2>/dev/null | grep '# cortex-autorun' | sed 's/^/  /'
   echo ""
   echo "Next scheduled runs:"
-  echo "  Weekly Auto-Improve:  Next Sunday at 02:00 AM"
-  echo "  Monthly Re-Discover:  1st of next month at 03:00 AM"
+  echo "  Weekly Quality Check:   Next Sunday at 02:00 AM"
+  echo "  Monthly Re-Discover:    1st of next month at 03:00 AM"
 }
 
 # --- Remove ---
@@ -342,7 +343,7 @@ status_macos() {
   fi
 
   echo "Cortex Scheduled Tasks:"
-  echo "  Weekly Auto-Improve:   [$improve_status]"
+  echo "  Weekly Quality Check:  [$improve_status]"
   echo "    Next run: $improve_next"
   echo "    Last log: $(get_last_log_line "$LOG_DIR/weekly-improve.log")"
   echo "  Monthly Re-Discover:   [$discover_status]"
@@ -369,7 +370,7 @@ status_linux() {
   fi
 
   echo "Cortex Scheduled Tasks:"
-  echo "  Weekly Auto-Improve:   [$improve_status]"
+  echo "  Weekly Quality Check:  [$improve_status]"
   echo "    Next run: $improve_next"
   echo "    Last log: $(get_last_log_line "$LOG_DIR/weekly-improve.log")"
   echo "  Monthly Re-Discover:   [$discover_status]"
@@ -425,7 +426,7 @@ case "$ACTION" in
 
     echo ""
     echo "Logs will be written to:"
-    echo "  $LOG_DIR/weekly-improve.log"
+    echo "  $LOG_DIR/weekly-improve.log    (quality measurement output)"
     echo "  $LOG_DIR/weekly-improve.err"
     echo "  $LOG_DIR/monthly-discover.log"
     echo "  $LOG_DIR/monthly-discover.err"

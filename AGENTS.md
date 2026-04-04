@@ -42,8 +42,8 @@ cortex/
       detect-cli-tools.sh      # AI agent acceleration CLI tool detection (Toolbox mode)
       install-cli-tools.sh     # Safe cross-platform CLI tool installer (Toolbox mode)
       score.sh                 # Quantitative scoring (0-100, 4 dimensions)
-      run-skill-evals.sh       # Assertion-based eval runner (18 cases)
-      auto-improve.sh          # Autoresearch loop orchestrator
+      run-skill-evals.sh       # Assertion-based eval runner (28 cases)
+      auto-improve.sh          # Quality measurement (scores fixtures, reports weakest dimension)
       validate.sh              # Format validation
       log-result.sh            # Append-only TSV logger
       audit-existing.sh        # Existing setup inventory for audit mode
@@ -72,7 +72,7 @@ cortex/
       SKILL-monorepo.md        # Monorepo handling (turbo/nx/lerna/pnpm)
       SKILL-minimal.md         # Minimal project handling (<= 10 files)
     evals/
-      evals.json               # 18 test cases with assertions
+      evals.json               # 28 test cases with assertions
   claude-code-auto-research/   # Python autoresearch loop
     run.py                     # Autonomous optimization engine
     measure.py                 # Scoring + grading logic
@@ -140,15 +140,15 @@ codex-specialist (AGENTS.md generation)
 ./install.sh                                          # Install to ~/.claude/skills/scaffold/
 
 # Testing & Quality
-bash skills/scaffold/scripts/run-skill-evals.sh       # Run all 18 eval cases
+bash skills/scaffold/scripts/run-skill-evals.sh       # Run all 28 eval cases
 bash skills/scaffold/scripts/score.sh <output-dir>    # Score scaffold output (0-100 JSON)
 bash skills/scaffold/scripts/validate.sh <output-dir> # Format validation
 
 # Analysis
 bash skills/scaffold/scripts/analyze.sh <repo-dir>    # Heuristic pre-scan
 
-# Improvement
-bash skills/scaffold/scripts/auto-improve.sh           # Run autoresearch loop
+# Quality Measurement
+bash skills/scaffold/scripts/auto-improve.sh           # Measure scaffold quality (scores fixtures, no edits)
 bash skills/scaffold/scripts/log-result.sh             # Log results to TSV
 
 # Discovery

@@ -127,24 +127,29 @@ bash skills/scaffold/scripts/log-result.sh /path/to/repo success "Scaffolded nex
 
 ---
 
-### 5. Self-Improving SKILL.md (Auto-Improve Mode)
+### 5. Measured SKILL.md Improvement (Auto-Improve Mode)
 
 **Files**:
-- `skills/scaffold/scripts/auto-improve.sh` — orchestration script
+- `skills/scaffold/scripts/auto-improve.sh` — measurement script (scoring only, no edits)
 - `skills/scaffold/agents/skill-improver.md` — agent that edits SKILL.md
 - `commands/scaffold-optimize.md` — updated with auto-improve sub-command
-- `skills/scaffold/SKILL.md` — new Auto-Improve Mode section
+- `skills/scaffold/SKILL.md` — Auto-Improve Mode section
 
 **Autoresearch equivalent**: The agent edits `train.py` and measures the result. Here, the agent edits SKILL.md and measures scaffold quality.
 
-**What it does**: This is autoresearch applied to prompt engineering.
+**How it works**: The improvement loop is orchestrated by the Claude agent (via `/scaffold optimize auto-improve`), not by the shell script. The roles are:
 
-1. Score all test fixtures to establish a baseline average
-2. Identify the weakest dimension across fixtures
-3. Dispatch `skill-improver` agent to make ONE targeted edit to SKILL.md
-4. Re-score all fixtures
-5. If average score improved: keep the edit. If not: revert.
-6. Repeat up to 5 times
+- `auto-improve.sh`: Measurement only. Scores all fixtures, identifies the weakest dimension, logs results to `~/.cortex/auto-improve-log.tsv`. Does not edit any files.
+- `skill-improver` agent: Editing only. Receives the weakest dimension and makes ONE targeted edit to SKILL.md.
+- SKILL.md Auto-Improve Mode: Orchestrates the loop — calls the script for measurement, dispatches the agent for edits, then calls the script again to verify.
+
+**The full loop (driven by the Claude agent, not the script)**:
+
+1. Run `auto-improve.sh` to score all fixtures and establish a baseline
+2. Dispatch `skill-improver` agent to make ONE targeted edit to SKILL.md
+3. Run `auto-improve.sh` again to re-score
+4. If average score improved: keep the edit. If not: revert.
+5. Repeat up to 5 times
 
 **The skill-improver agent** follows strict editing rules:
 - One change at a time (1-3 sentences or bullet points)
@@ -155,7 +160,7 @@ bash skills/scaffold/scripts/log-result.sh /path/to/repo success "Scaffolded nex
 
 **Usage**: `/scaffold-optimize auto-improve` in Claude Code
 
-**auto-improve.sh** provides the measurement infrastructure. It scores all fixtures, identifies the weakest dimension, reports what the agent should target, and logs every iteration to `~/.cortex/auto-improve-log.tsv`.
+**Important**: Running `auto-improve.sh` standalone only produces a quality report. It does not trigger any edits. The improvement loop requires the full Claude agent session.
 
 ---
 
@@ -200,7 +205,7 @@ bash skills/scaffold/scripts/log-result.sh /path/to/repo success "Scaffolded nex
 |------|-------|---------|
 | `scripts/score.sh` | 259 | Quantitative scaffold scoring (0-100 JSON) |
 | `scripts/log-result.sh` | 84 | Append-only experiment log |
-| `scripts/auto-improve.sh` | 224 | Autoresearch loop for self-improving SKILL.md |
+| `scripts/auto-improve.sh` | ~160 | Quality measurement script (scores fixtures, reports weakest dimension) |
 | `agents/scaffold-improver.md` | 89 | Agent that improves scaffold output per dimension |
 | `agents/skill-improver.md` | 76 | Agent that edits SKILL.md based on experiment data |
 
@@ -287,7 +292,7 @@ Keep or revert -> repeat up to 5 times
 
 The repo also contains `claude-code-auto-research/`, a more complete Python-based autoresearch implementation that optimizes individual subagent prompts (not SKILL.md). It uses a `run.py` loop to modify subagent files (e.g., `quality-reviewer.md`), run evals via Claude CLI, and keep/discard changes based on a composite score. This is complementary to the bash-based tooling above:
 
-- **claude-code-auto-research/**: Optimizes individual subagent prompts. Python-based. Requires Claude CLI. More granular (targets one subagent at a time).
-- **skills/scaffold/scripts/auto-improve.sh**: Optimizes SKILL.md (the master orchestration). Bash-based. Measures across all fixtures. Broader scope.
+- **claude-code-auto-research/**: Optimizes individual subagent prompts. Python-based. Requires Claude CLI. More granular (targets one subagent at a time). Truly autonomous — `run.py` drives the full loop.
+- **skills/scaffold/scripts/auto-improve.sh**: Measures scaffold quality across all fixtures. Bash-based. Reports the weakest dimension and logs results. Does NOT edit files — editing is done by the skill-improver agent when invoked via `/scaffold optimize auto-improve`.
 
-Both use the same core autoresearch pattern. Use `claude-code-auto-research/` when you want to fine-tune a specific subagent's behavior. Use `auto-improve.sh` when you want to improve the overall scaffold flow.
+Both contribute to the autoresearch pattern. Use `claude-code-auto-research/` when you want to fine-tune a specific subagent's behavior autonomously. Use `auto-improve.sh` as measurement infrastructure for the agent-driven SKILL.md improvement workflow.

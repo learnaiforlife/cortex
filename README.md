@@ -52,7 +52,7 @@ Cortex will find all your projects, tools, services, and integrations, then gene
 | `/scaffold [repo] --all` | Accept all suggestions (no prompts — good for CI/overnight) |
 | `/scaffold [repo] --minimal` | Generate only CLAUDE.md + safety rules |
 | `/scaffold audit` | Scan existing setup for duplicates, stale configs, broken references |
-| `/scaffold optimize` | Run evals, check freshness, auto-improve skills |
+| `/scaffold optimize` | Run evals, check freshness, measure quality |
 | `/scaffold discover` | Scan your machine, generate user-level + per-project setup |
 
 ### Interactive Mode
@@ -92,11 +92,11 @@ cd cortex
 | Recommends official plugins first | Yes | You research | No awareness |
 | Audits existing setup | Yes | Manual review | No |
 | Quality scoring (0-100) | Yes | No | No |
-| Self-improving via autoresearch loop | Yes | No | No |
+| Quality measurement + agent-driven improvement | Yes | No | No |
 | Machine-wide discovery | Yes | No | No |
 | Variant dispatch (monorepo, minimal) | Yes | N/A | No |
 
-**Related projects:** [ai-nexus](https://github.com/AiNexusHub/ai-nexus) (rule routing), [rule-porter](https://github.com/bosun-ai/rule-porter) (format conversion), [akm](https://github.com/rinormaloku/akm) (rule indexing). Cortex differs by performing per-repo analysis + multi-artifact generation + measurement-driven self-improvement.
+**Related projects:** [ai-nexus](https://github.com/AiNexusHub/ai-nexus) (rule routing), [rule-porter](https://github.com/bosun-ai/rule-porter) (format conversion), [akm](https://github.com/rinormaloku/akm) (rule indexing). Cortex differs by performing per-repo analysis + multi-artifact generation + measurement-driven quality tracking.
 
 ## Architecture
 
@@ -150,7 +150,7 @@ cd cortex
 | `scripts/score.sh` | Score scaffold output (0-100 JSON) |
 | `scripts/run-skill-evals.sh` | Run assertion-based evals |
 | `scripts/log-result.sh` | Append to experiment log |
-| `scripts/auto-improve.sh` | Autoresearch loop for SKILL.md |
+| `scripts/auto-improve.sh` | Quality measurement (scores fixtures, reports weakest dimension) |
 | `scripts/discover-orchestrator.sh` | Machine-wide discovery engine |
 | `scripts/schedule-autorun.sh` | Setup weekly/monthly automation |
 | `scripts/validate.sh` | Basic format validation |

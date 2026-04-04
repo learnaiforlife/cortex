@@ -568,7 +568,7 @@ After printing the quality score, if the total score is below 70, analyze the we
 - If **completeness** < 15: print "Completeness issue detected: Missing output for one or more tools. Verify: CLAUDE.md exists? .cursor/rules/*.mdc exists? AGENTS.md exists? At least one .claude/rules/*.md? Run `/scaffold optimize` to fix automatically."
 - If **structural_quality** < 15: print "Structural issue detected: Some files may be too short or missing body content. Agents need system prompts after frontmatter. Skills need workflow steps. Run `/scaffold optimize` to fix automatically."
 
-If the score is >= 70 but < 80, print: "Score is acceptable but could be higher. Run `/scaffold optimize auto-improve` for autonomous improvement."
+If the score is >= 70 but < 80, print: "Score is acceptable but could be higher. Run `/scaffold optimize auto-improve` to measure and target the weakest dimension."
 
 If the score is >= 80, print nothing extra (quality is good).
 
@@ -701,17 +701,21 @@ Print a summary:
 
 ## Auto-Improve Mode
 
-This is the autoresearch pattern applied to SKILL.md itself: the agent modifies the skill's own instructions, measures the impact on scaffold quality, and keeps only improvements.
+Measures scaffold quality, then iteratively improves SKILL.md through an agent-driven loop. The shell script (`auto-improve.sh`) handles measurement only. The improvement edits happen here, in this Claude session, via the skill-improver agent.
 
-### Step 1: Collect Baseline Scores
+### Step 1: Measure Baseline
 
-Run the scorer across all test fixtures to establish a baseline:
+Run the measurement script to score all test fixtures and identify the weakest dimension:
 
 ```bash
 bash "${CLAUDE_SKILL_DIR}/scripts/auto-improve.sh" "${CLAUDE_SKILL_DIR}"
 ```
 
-This scores every fixture in `test/fixtures/` and reports the average score and weakest dimension.
+This scores every fixture in `test/fixtures/` and writes a measurement row to `~/.cortex/auto-improve-log.tsv`. It does NOT edit any files.
+
+Parse the script output to extract:
+- `BASELINE_AVG`: the average score across fixtures
+- `WEAKEST_DIMENSION`: the dimension with the lowest average
 
 ### Step 2: Dispatch Skill-Improver Agent
 
@@ -719,18 +723,20 @@ Launch the **skill-improver** subagent with the baseline data:
 
 - Prompt: "Read the SKILL.md at `{CLAUDE_SKILL_DIR}/SKILL.md`. The experiment log is at `~/.cortex/auto-improve-log.tsv`. The evals are at `{CLAUDE_SKILL_DIR}/evals/evals.json`. The weakest dimension across fixtures is `{WEAKEST_DIMENSION}` with avg score `{WEAKEST_SCORE}/25`. Make ONE targeted edit to SKILL.md to improve scaffold output for that dimension. Follow your editing rules strictly."
 
-### Step 3: Re-Score and Decide
+The skill-improver agent reads SKILL.md and makes a focused edit. This is the only step that modifies files.
+
+### Step 3: Re-Measure and Decide
 
 After the skill-improver edits SKILL.md:
 
-1. Re-run the scorer on all fixtures:
+1. Re-run the measurement script:
 ```bash
 bash "${CLAUDE_SKILL_DIR}/scripts/auto-improve.sh" "${CLAUDE_SKILL_DIR}"
 ```
 
 2. Compare the new average score to the baseline.
 
-3. **Decision rule** (from autoresearch):
+3. **Decision rule**:
    - If new avg score > baseline: **keep** the edit. Commit with message `"auto-improve: [dimension] [before]->[after]"`.
    - If new avg score <= baseline: **revert** the edit with `git checkout -- "${CLAUDE_SKILL_DIR}/SKILL.md"`.
 
@@ -739,7 +745,7 @@ bash "${CLAUDE_SKILL_DIR}/scripts/auto-improve.sh" "${CLAUDE_SKILL_DIR}"
 **Only if the change was KEPT in Step 3** (score improved): If the skill-improver classified its change as **DERIVED**, dispatch the **variant-dispatcher** subagent to extract the conditional logic into a variant file:
 
 - Prompt: "The skill-improver flagged a DERIVED change for [repo type]. Extract the conditional blocks from SKILL.md at `{CLAUDE_SKILL_DIR}/SKILL.md` into `variants/SKILL-{type}.md`. Update `variants/dispatch-table.json`. SKILL.md path: `{CLAUDE_SKILL_DIR}/SKILL.md`. Dispatch table: `{CLAUDE_SKILL_DIR}/variants/dispatch-table.json`."
-- After extraction, re-score to verify no regression.
+- After extraction, re-measure to verify no regression.
 
 If the change was FIX or CAPTURED, skip this step.
 

@@ -40,7 +40,7 @@ test/fixtures/             # 3 fixture projects (nextjs-app, python-api, minimal
 bash skills/scaffold/scripts/score.sh <output-dir>    # Score scaffold output (0-100 JSON)
 bash skills/scaffold/scripts/run-skill-evals.sh       # Run assertion-based evals (28 test cases)
 bash skills/scaffold/scripts/validate.sh <output-dir> # Format validation
-bash skills/scaffold/scripts/auto-improve.sh           # Autoresearch loop (measure-edit-measure)
+bash skills/scaffold/scripts/auto-improve.sh           # Quality measurement (scores fixtures, reports weakest dimension)
 bash skills/scaffold/scripts/analyze.sh <repo-dir>    # Heuristic pre-scan (ProjectProfile JSON)
 ```
 
