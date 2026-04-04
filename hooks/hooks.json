@@ -7,6 +7,10 @@
           {
             "type": "command",
             "command": "if [ ! -f CLAUDE.md ] && ([ -f package.json ] || [ -f pyproject.toml ] || [ -f go.mod ] || [ -f Cargo.toml ] || [ -f pom.xml ]); then echo 'Tip: This project has no AI dev setup. Run /scaffold to generate CLAUDE.md, agents, skills, rules, and MCP configs tailored to this codebase. Or run /scaffold discover for a full machine-wide AI setup.' >&2; fi; exit 0"
+          },
+          {
+            "type": "command",
+            "command": "MISSING=''; command -v rg >/dev/null 2>&1 || MISSING=\"$MISSING ripgrep\"; command -v fd >/dev/null 2>&1 || MISSING=\"$MISSING fd\"; command -v jq >/dev/null 2>&1 || MISSING=\"$MISSING jq\"; [ -n \"$MISSING\" ] && echo \"Tip: Missing CLI tools that speed up AI agents:$MISSING. Run /scaffold-toolbox to install.\" >&2; exit 0"
           }
         ]
       }

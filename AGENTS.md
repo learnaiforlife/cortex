@@ -2,7 +2,7 @@
 
 ## Overview
 
-AI development scaffolding plugin for Claude Code, Cursor, and Codex. Analyzes any repository and generates complete, project-specific AI configuration files. Ships as a Claude Code plugin with 4 modes: scaffold (generate), audit (review), optimize (improve), and discover (machine-wide).
+AI development scaffolding plugin for Claude Code, Cursor, and Codex. Analyzes any repository and generates complete, project-specific AI configuration files. Ships as a Claude Code plugin with 5 modes: scaffold (generate), audit (review), optimize (improve), discover (machine-wide), and toolbox (CLI tool installer).
 
 **Tech Stack**: Bash (scripts), Python 3.10+ (autoresearch loop), Markdown (all configuration)
 **Plugin System**: Claude Code skills + commands + hooks
@@ -15,7 +15,7 @@ AI development scaffolding plugin for Claude Code, Cursor, and Codex. Analyzes a
 ```
 cortex/
   skills/scaffold/             # Main skill -- master orchestrator (SKILL.md, 962 LOC)
-    agents/                    # 13 specialized subagents
+    agents/                    # 20 specialized subagents
       repo-analyzer.md         # Deep codebase exploration (architecture, patterns, commands)
       skill-recommender.md     # Official plugins first, custom skills for gaps
       quality-reviewer.md      # Format validation + content review (PASS/FAIL gate)
@@ -29,9 +29,18 @@ cortex/
       variant-dispatcher.md    # Extract conditional logic into variant files
       opportunity-detector.md  # Suggests subagents/skills/integrations per repo
       integration-subagent-gen.md # Fills integration templates + MCP entries
-    scripts/                   # 16 bash utility scripts
+      toolbox-recommender.md   # CLI tool scoring and recommendation (Toolbox mode)
+      migration-analyzer.md    # Migration path analysis
+      migration-planner.md     # Migration step planning
+      migration-agent-generator.md # Generate migration-specific agents
+      migration-validator.md   # Validate migration results
+      migration-progress-tracker.md # Track migration progress
+      risk-assessor.md         # Risk assessment for changes
+    scripts/                   # 21 bash utility scripts
       analyze.sh               # Heuristic pre-scan -> ProjectProfile JSON
       detect-opportunities.sh  # Detects subagent/skill/integration opportunities
+      detect-cli-tools.sh      # AI agent acceleration CLI tool detection (Toolbox mode)
+      install-cli-tools.sh     # Safe cross-platform CLI tool installer (Toolbox mode)
       score.sh                 # Quantitative scoring (0-100, 4 dimensions)
       run-skill-evals.sh       # Assertion-based eval runner (18 cases)
       auto-improve.sh          # Autoresearch loop orchestrator
@@ -46,9 +55,10 @@ cortex/
       discover-company.sh      # Company context detection
       log-discover.sh          # DeveloperDNA logger
       schedule-autorun.sh      # Cron automation setup
-    references/                # 10 reference catalogs
+    references/                # 12 reference catalogs
       official-plugins-catalog.md  # Plugin registry with trigger signals
       mcp-catalog.md              # MCP server registry with configs
+      cli-tools-catalog.md        # CLI tools for AI agent acceleration (56 tools)
       claude-code-formats.md      # Claude Code file format specs
       cursor-formats.md           # Cursor file format specs
       codex-formats.md            # Codex file format specs
@@ -75,6 +85,8 @@ cortex/
     scaffold-audit.md          # /scaffold audit
     scaffold-optimize.md       # /scaffold optimize
     scaffold-discover.md       # /scaffold discover
+    scaffold-toolbox.md        # /scaffold-toolbox (CLI tool installer)
+    scaffold-migrate.md        # /scaffold migrate
   hooks/
     hooks.json                 # SessionStart/Stop auto-suggest hooks
   test/fixtures/               # Test fixture projects
@@ -114,6 +126,11 @@ codex-specialist (AGENTS.md generation)
     |
     v
 [Write Files] --> [Score (0-100)] --> [Log Results]
+
+/scaffold-toolbox
+    |
+    v
+[detect-cli-tools.sh] --> toolbox-recommender --> Present --> Install (dry-run first)
 ```
 
 ## Development Commands

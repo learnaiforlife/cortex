@@ -17,7 +17,7 @@ if [ -d "$SKILL_DIR" ]; then
   mkdir -p "$BACKUP_DIR"
   cp -r "$SKILL_DIR" "$BACKUP_DIR/" 2>/dev/null || true
   # Also backup commands
-  for cmd in scaffold.md scaffold-audit.md scaffold-optimize.md scaffold-discover.md; do
+  for cmd in scaffold.md scaffold-audit.md scaffold-optimize.md scaffold-discover.md scaffold-toolbox.md; do
     [ -f "$COMMANDS_DIR/$cmd" ] && cp "$COMMANDS_DIR/$cmd" "$BACKUP_DIR/" 2>/dev/null || true
   done
   echo "  Backup complete. Restore with: cp -r $BACKUP_DIR/scaffold/* $SKILL_DIR/"
@@ -67,6 +67,9 @@ echo "  /scaffold audit                              # audit existing AI setup"
 echo "  /scaffold optimize                           # optimize existing skills"
 echo "  /scaffold discover                           # discover & setup all projects"
 echo "  /scaffold discover ~/work ~/personal         # discover custom directories"
+echo "  /scaffold-toolbox                              # detect & recommend CLI tools"
+echo "  /scaffold-toolbox install                      # install recommended CLI tools"
+echo "  /scaffold-toolbox configure                    # set AI agent env vars"
 echo ""
 echo "Scheduling (auto-improve & re-discover):"
 echo "  bash ~/.claude/skills/scaffold/scripts/schedule-autorun.sh setup"

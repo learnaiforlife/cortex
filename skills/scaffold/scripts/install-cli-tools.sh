@@ -98,18 +98,27 @@ log "Mode: $([ "$DRY_RUN" = true ] && echo 'dry-run' || echo 'install')"
 
 # Use python3 to parse JSON (jq may not be installed yet — that's what we're installing!)
 # Pass manifest path via sys.argv to avoid shell injection
+# Uses __EMPTY__ sentinel to distinguish "valid JSON with 0 tools" from "parse failure"
 TOOLS_JSON=$(python3 -c "
 import json, sys
 with open(sys.argv[1]) as f:
     data = json.load(f)
 tools = data if isinstance(data, list) else data.get('tools', data.get('recommended', []))
-for t in tools:
-    print(json.dumps(t))
+if not tools:
+    print('__EMPTY__')
+else:
+    for t in tools:
+        print(json.dumps(t))
 " "$MANIFEST_FILE" 2>/dev/null)
 
 if [ -z "$TOOLS_JSON" ]; then
   echo '{"error": "Failed to parse manifest JSON"}'
   exit 1
+fi
+
+if [ "$TOOLS_JSON" = "__EMPTY__" ]; then
+  echo '{"dryRun": true, "results": [], "summary": {"installed": 0, "failed": 0, "skipped": 0, "rejected": 0, "total": 0}, "logFile": "'"$LOG_FILE"'"}'
+  exit 0
 fi
 
 TOOL_COUNT=$(echo "$TOOLS_JSON" | wc -l | tr -d ' ')
@@ -176,8 +185,8 @@ process_tool() {
     return 4
   fi
 
-  # Verify installation
-  if [ -n "$verify_cmd" ]; then
+  # Verify installation (reject metacharacters in verify_cmd too)
+  if [ -n "$verify_cmd" ] && ! [[ "$verify_cmd" =~ [\;\&\|\$\`\>\<\(\)] ]]; then
     local version
     version=$(eval "$verify_cmd" 2>&1 | head -1)
     log "INSTALLED: $id — $version"

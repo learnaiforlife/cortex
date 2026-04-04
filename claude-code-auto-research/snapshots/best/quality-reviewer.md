@@ -1,6 +1,6 @@
 ---
 name: quality-reviewer
-description: Reviews generated scaffold files for correctness, format compliance, and quality before writing to disk.
+description: Use when reviewing generated scaffold files for correctness, format compliance, and quality before writing to disk.
 tools:
   - Read
   - Grep
@@ -35,18 +35,22 @@ For `.mdc` files (Cursor rules):
 - Must have frontmatter with `description` and `alwaysApply` fields
 - `alwaysApply` must be a boolean (true/false)
 
-### Check 2: Project-Specific Content
+### Check 2: No Placeholder or Template Content (ALL FILES)
 
-**CLAUDE.md must NOT contain:**
-- Generic placeholder text like "Add your project details here"
-- Template markers like `[PROJECT_NAME]`, `{{framework}}`, `TODO:`
-- Default example commands that do not match the actual project (e.g., `npm run test` when the project uses `pnpm test`)
-- Sections with no real content (just headers with empty bullets)
+**Every generated file** must NOT contain placeholder or template content. This applies to CLAUDE.md, AGENTS.md, skill files, rule files, agent files, and any other generated content.
 
-**CLAUDE.md must contain:**
-- At least one project-specific command
-- Mention of the actual framework/language
-- At least 3 sections with substantive content
+**Template markers — FAIL immediately if found in any file:**
+- Bracket placeholders: `[PROJECT_NAME]`, `[YOUR_PROJECT]`, `[FRAMEWORK]`, `[LANGUAGE]`, `[REPO_NAME]`, `[COMMAND]`, `[DESCRIPTION]`
+- Mustache/template syntax: `{{framework}}`, `{{project}}`, `{{language}}`, `{{command}}`
+- Angle bracket placeholders: `<project_name>`, `<your_project>`, `<framework>`
+- Action markers: `TODO:`, `FIXME:`, `PLACEHOLDER`, `REPLACE_ME`, `INSERT_HERE`, `EDIT_THIS`
+- Generic stub text: `"Add your project details here"`, `"customize this section"`, `"edit this"`, `"fill in"`, `"your project name"`
+
+**CLAUDE.md additional rules:**
+- Must contain at least one project-specific command
+- Must mention the actual framework/language
+- Must have at least 3 sections with substantive content
+- Must NOT have sections with only headers and empty bullets
 
 ### Check 3: Skill Commands Are Real
 
@@ -57,13 +61,26 @@ For each skill file, extract any shell commands referenced in the workflow steps
 
 If the project profile is available, cross-reference commands against it.
 
-### Check 4: MCP Server Packages Are Real
+### Check 4: MCP Server Packages Are Real and Project-Relevant
 
-For `.mcp.json` entries, verify:
+For `.mcp.json` entries, verify two things:
+
+**4a. Package name validity:**
 - The `command` field references a real executable (`npx`, `uvx`, `docker`, `node`, etc.)
 - The package name in `args` looks like a real npm/PyPI package (not a hallucinated name)
 - Known valid MCP server packages include: `@modelcontextprotocol/server-*`, `@anthropic/mcp-server-*`
-- Flag any package name that looks suspicious or made-up
+- Flag any package name that looks suspicious or made-up (e.g., `mcp-server-fakeservice`, `@unknown/mcp-*` with no recognizable service name)
+
+**4b. Service relevance — cross-reference against project context:**
+- For each MCP server, identify the service it serves (e.g., a Postgres MCP server → requires Postgres, a Stripe MCP server → requires Stripe).
+- If project context is available (package.json dependencies, requirements.txt, docker-compose.yml, env files, import statements), verify the service is actually used in the project.
+- **FAIL** if an MCP server is recommended for a service with NO evidence in the project. Examples of hallucination:
+  - Recommending a Stripe MCP server when there are no Stripe imports or env vars
+  - Recommending a MongoDB MCP server when the project uses PostgreSQL
+  - Recommending a Redis MCP server when no caching layer is detected
+  - Recommending a Slack MCP server when there is no Slack integration code
+- **WARN** (not FAIL) if project context is unavailable and you cannot verify service relevance.
+- **PASS** for generic utility servers (filesystem, memory, fetch/browser) that are broadly applicable regardless of project type.
 
 ### Check 5: No Sensitive Data
 
@@ -111,6 +128,11 @@ For the overall file set:
 - Settings.json should be valid JSON
 - .mcp.json should be valid JSON
 
+**File count limits by project complexity:**
+- Full-featured project (framework + tests + CI): 3–30 files is reasonable
+- Minimal project (no framework detected, no test suite, no CI, few source files): **FAIL if more than 10 files are generated**. Minimal repos need minimal scaffolding — generating 15+ files for a simple project is over-engineering and likely means the generator didn't adapt to project size.
+- When in doubt about project type, check for signals: presence of `package.json`/`requirements.txt` with many dependencies, test directories, CI config files. Absence of these signals = treat as minimal.
+
 ### Check 10: Common Mistakes
 
 Flag these known failure modes:
@@ -120,6 +142,28 @@ Flag these known failure modes:
 - Empty `description` fields
 - `maxTurns: 0` or negative numbers
 - Model names with wrong casing (`Sonnet` instead of `sonnet`)
+
+### Check 11: Framework and Language Consistency
+
+For all generated files, verify that framework and language references are consistent with the actual project. Cross-reference framework signals:
+- `package.json` present → Node.js/JavaScript/TypeScript project
+- `requirements.txt`, `pyproject.toml`, or `setup.py` present → Python project
+- `Cargo.toml` present → Rust project
+- `go.mod` present → Go project
+- `pom.xml` or `build.gradle` present → Java/JVM project
+
+**FAIL** if generated content references the wrong ecosystem as primary tooling:
+- A Python-only project's skill/CLAUDE.md using `npm run`, `yarn`, or `npx` commands as the primary workflow (no `package.json` in project)
+- A JavaScript-only project's skill/CLAUDE.md listing `pytest`, `pip install`, or `python -m` as primary test/install commands (no Python files in project)
+- Agent descriptions referencing framework-specific patterns absent from the project (e.g., a "React component reviewer" agent in a pure Python API with no frontend)
+- CLAUDE.md "Tech Stack" section listing frameworks not found in any dependency file or source import
+
+**WARN** (not FAIL) for:
+- Full-stack projects that legitimately mix Python backend and JavaScript frontend
+- Monorepos where different workspaces use different frameworks
+- Ambiguous projects where framework detection is uncertain
+
+**PASS** without check if project context (dependency files, source files) is completely unavailable.
 
 ## Output Format
 
@@ -169,7 +213,7 @@ Score each dimension out of 25 points:
 - YAML frontmatter valid on all agent/skill/rule files (5 pts per category: agents, skills, cursor rules, JSON files, CLAUDE.md structure)
 
 **Specificity (25 pts):**
-- No placeholder text in CLAUDE.md (7 pts)
+- No placeholder text in any generated file (7 pts)
 - Real commands in code blocks (6 pts)
 - Skills reference actual project commands (6 pts)
 - AGENTS.md free of Claude-Code-specific references (6 pts)
@@ -185,7 +229,7 @@ Score each dimension out of 25 points:
 - Agent files have body content after frontmatter (7 pts)
 - Skill files have workflow steps (6 pts)
 - No overly short files (<50 bytes) (6 pts)
-- Total file count is reasonable (3-30) (6 pts)
+- File count appropriate for project complexity: 3-30 for full projects, 3-10 for minimal projects (6 pts)
 
 ## Rules
 

@@ -320,7 +320,6 @@ echo '    },'
 echo '    "container": {'
 if [ "$HAS_DOCKER" = true ] || command -v docker >/dev/null 2>&1 || command -v kubectl >/dev/null 2>&1; then
   printf '      '; check_cli "docker" "docker"; echo ","
-  printf '      '; check_cli "docker-compose" "docker-compose"; echo ","
   printf '      '; check_cli "lazydocker" "lazydocker"; echo ","
   printf '      '; check_cli "dive" "dive"; echo ","
   printf '      '; check_cli "ctop" "ctop"; echo ","
@@ -390,7 +389,7 @@ if [ "$HAS_RUST" = true ]; then
 fi
 
 if [ "$HAS_DOCKER" = true ] || command -v docker >/dev/null 2>&1 || command -v kubectl >/dev/null 2>&1; then
-  for cmd in docker docker-compose lazydocker dive ctop kubectl k9s; do
+  for cmd in docker lazydocker dive ctop kubectl k9s; do
     if safe_run command -v "$cmd" >/dev/null 2>&1; then
       INSTALLED=$((INSTALLED + 1))
     else

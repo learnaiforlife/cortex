@@ -1045,12 +1045,13 @@ Execute the discovery orchestrator (shell scripts only, no LLM calls):
 bash "${CLAUDE_SKILL_DIR}/scripts/discover-orchestrator.sh" "${SCAN_DIRS[@]}" > /tmp/cortex-developer-dna.json
 ```
 
-This runs 5 discovery scripts in parallel:
+This runs 6 discovery scripts in parallel:
 - `discover-projects.sh` — finds all git repos, profiles each
 - `discover-tools.sh` — detects CLIs, IDEs, package managers
 - `discover-services.sh` — checks running ports, Docker containers
 - `discover-integrations.sh` — checks Jira/Slack/GitHub/Sentry/etc configs
 - `discover-company.sh` — detects internal registries, conventions
+- `detect-cli-tools.sh` — detects AI agent acceleration CLI tools (ripgrep, fd, jq, etc.)
 
 **Performance target**: Under 60 seconds for 100 repos.
 
@@ -1078,6 +1079,12 @@ Present a summary of what was discovered. Do NOT proceed to generation without u
 - CLIs: [list installed]
 - Running services: [list]
 - Docker containers: [count]
+
+### CLI Tools for AI Agents
+- Installed: [N] tools ([list essential tools found])
+- Missing essentials: [list missing essential tools, or "none — all essential tools present"]
+- AI config: USE_BUILTIN_RIPGREP=[status]
+- Run /scaffold-toolbox to install missing tools
 
 ### Integrations Detected
 - [Jira / Slack / GitHub / Sentry / etc. with signals]
