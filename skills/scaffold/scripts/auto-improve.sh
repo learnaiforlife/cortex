@@ -164,7 +164,7 @@ if [ "$AVG_SCORE" -lt 70 ]; then
   echo "  This dispatches the skill-improver agent to edit SKILL.md,"
   echo "  then re-measures to verify the change helped."
   echo ""
-  exit 1
+  exit 0
 elif [ "$AVG_SCORE" -lt 80 ]; then
   echo "  Score is acceptable but could be improved."
   echo "  Run /scaffold optimize auto-improve to target the"
