@@ -1161,7 +1161,7 @@ Dispatch the **user-level-generator** subagent:
   - `~/.claude/.mcp.json` — integration MCP servers (if any detected)
   - `~/.claude/rules/*.md` — global rules (company conventions, security, shared testing/linting)
 
-**If `--user-level-only` was specified, skip D7 (project-level scaffolding) and proceed directly to Step D8 (quality review for user-level files) then D9 (write) then D10 (summary).**
+**If `USER_LEVEL_ONLY` is true (set by either the `--user-level-only` CLI flag or the interactive "User-level only" choice in Step D3), skip D7 (project-level scaffolding) and proceed directly to Step D8 (quality review for user-level files) then D9 (write) then D10 (summary).**
 
 ### Step D7: Generate Project-Level Setups (Batch)
 

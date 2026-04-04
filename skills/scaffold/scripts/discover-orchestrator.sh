@@ -120,7 +120,8 @@ if [ ${#PHASE_FAILURES[@]} -gt 0 ]; then
   echo "" >&2
   echo "WARNING: ${#PHASE_FAILURES[@]} discovery phase(s) failed:" >&2
   for failure in "${PHASE_FAILURES[@]}"; do
-    IFS=':' read -r label code msg <<< "$failure"
+    label="${failure%%:*}"; rest="${failure#*:}"
+    code="${rest%%:*}"; msg="${rest#*:}"
     echo "  - $label (exit $code): $msg" >&2
   done
   echo "Continuing with partial results." >&2
