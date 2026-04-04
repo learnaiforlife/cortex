@@ -122,6 +122,32 @@ Authoritative reference for migration types, strategies, risk profiles, detectio
   - Setter/getter → properties
 - **Agent Config**: migration-converter (haiku)
 
+### Python 2 → Python 3
+- **Typical Strategy**: incremental (file-by-file with 2to3)
+- **Risk Baseline**: MEDIUM
+- **Detection Signals**: `print` statements without parens, `#!/usr/bin/env python2`, `python_requires` < 3
+- **Key Challenges**: Print function, unicode/bytes, integer division, dict methods, iterators
+- **Conversion Rules**:
+  - `print "x"` → `print("x")`
+  - `unicode` → `str`, `str` → `bytes`
+  - `dict.iteritems()` → `dict.items()`
+  - `xrange` → `range`
+  - `except Exception, e` → `except Exception as e`
+  - `raw_input` → `input`
+- **Agent Config**: migration-converter (haiku)
+
+### C# (.NET Framework → .NET Core)
+- **Typical Strategy**: strangler-fig (project-by-project)
+- **Risk Baseline**: HIGH
+- **Detection Signals**: `.csproj` with `<TargetFramework>net4*` + `<TargetFramework>net6*` or `net8*`
+- **Key Challenges**: System.Web → Microsoft.AspNetCore, Global.asax → Startup.cs, web.config → appsettings.json
+- **Conversion Rules**:
+  - `System.Web.Mvc` → `Microsoft.AspNetCore.Mvc`
+  - `HttpContext.Current` → injected `HttpContext`
+  - `web.config` → `appsettings.json`
+  - `Global.asax` → `Program.cs` + `Startup.cs`
+- **Agent Config**: migration-converter (sonnet)
+
 ---
 
 ## Framework Migrations
@@ -172,6 +198,34 @@ Authoritative reference for migration types, strategies, risk profiles, detectio
   - `this.state` → `useState`
   - `this.props` → function parameters
 - **Agent Config**: migration-converter (haiku)
+
+### Angular → React
+- **Typical Strategy**: strangler-fig (route-by-route via micro-frontend or iframe)
+- **Risk Baseline**: HIGH
+- **Detection Signals**: `angular.json` + `package.json` with `react`/`next` dependency
+- **Key Challenges**: Completely different component model, DI → hooks, RxJS → React Query, routing
+- **Conversion Rules**:
+  - Angular `@Component` → React functional component
+  - Angular services (`@Injectable`) → React context or hooks
+  - Angular templates → JSX
+  - `ngIf` → conditional rendering `{condition && <Comp />}`
+  - `ngFor` → `.map()`
+  - RxJS Observable → React Query or useState+useEffect
+- **Agent Config**: migration-converter (sonnet)
+
+### Vue 2 → Vue 3
+- **Typical Strategy**: incremental (component-by-component)
+- **Risk Baseline**: MEDIUM
+- **Detection Signals**: `vue` v2 in package.json + Composition API imports
+- **Key Challenges**: Options API → Composition API, Vuex → Pinia, Vue Router v3 → v4
+- **Conversion Rules**:
+  - `data()` → `ref()` / `reactive()`
+  - `computed:` → `computed()`
+  - `methods:` → plain functions in `setup()`
+  - `watch:` → `watch()` / `watchEffect()`
+  - `this.$store` → `useStore()` (Pinia)
+  - `this.$router` → `useRouter()`
+- **Agent Config**: migration-converter (sonnet)
 
 ---
 
