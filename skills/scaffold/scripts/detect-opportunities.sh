@@ -85,8 +85,12 @@ detect_git_activity() {
 }
 
 detect_source_file_count() {
-  find "$REPO_DIR" -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.py" -o -name "*.go" -o -name "*.rs" -o -name "*.java" \) \
-    -not -path "*/node_modules/*" -not -path "*/.git/*" -not -path "*/vendor/*" -not -path "*/dist/*" 2>/dev/null | wc -l | tr -d ' '
+  find "$REPO_DIR" -maxdepth 10 -type f \( \
+    -name '*.py' -o -name '*.js' -o -name '*.ts' -o -name '*.tsx' -o -name '*.jsx' \
+    -o -name '*.java' -o -name '*.go' -o -name '*.rs' -o -name '*.rb' \
+    -o -name '*.c' -o -name '*.cpp' -o -name '*.cs' -o -name '*.swift' -o -name '*.kt' \
+  \) -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/vendor/*' \
+  2>/dev/null | wc -l | tr -d ' '
 }
 
 detect_ci() {
@@ -130,10 +134,9 @@ detect_slack() {
   if [ -f "$REPO_DIR/package.json" ]; then
     grep -qE '@slack/' "$REPO_DIR/package.json" 2>/dev/null && score=$((score + 30))
   fi
-  # Machine-level signal: Slack.app is not project evidence, cap at 10
-  # Only add if project-level signals already exist
+  # Machine-level signal: Slack.app adds at most +5 bonus on top of project signals
   if [ "$score" -gt 0 ] && [ -d "/Applications/Slack.app" ]; then
-    score=$((score + 10))
+    score=$((score + 5))
   fi
   echo "$score"
 }
@@ -266,6 +269,7 @@ cat <<ENDJSON
     "pagerduty": $PAGERDUTY_SCORE
   },
   "softSkillSignals": {
+    "sourceFileCount": $SRC_COUNT,
     "hasDocs": $(has_docs && echo "true" || echo "false"),
     "hasComplexDomain": $(has_complex_domain && echo "true" || echo "false"),
     "isMediumPlus": $(is_medium_plus && echo "true" || echo "false")

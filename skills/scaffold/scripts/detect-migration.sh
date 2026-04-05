@@ -25,7 +25,12 @@ json_escape() {
 
 count_files() {
   local pattern="$1"
-  find "$REPO_DIR" -name "$pattern" -not -path "*/node_modules/*" -not -path "*/.git/*" -not -path "*/vendor/*" -not -path "*/dist/*" -not -path "*/__pycache__/*" -not -path "*/target/*" 2>/dev/null | wc -l | tr -d ' '
+  find "$REPO_DIR" -name "$pattern" \
+    -not -path "*/node_modules/*" -not -path "*/.git/*" -not -path "*/vendor/*" \
+    -not -path "*/dist/*" -not -path "*/__pycache__/*" -not -path "*/target/*" \
+    -not -path '*/test/*' -not -path '*/tests/*' -not -path '*/fixtures/*' \
+    -not -path '*/__tests__/*' -not -path '*/spec/*' -not -path '*/examples/*' \
+    -not -path '*/sample/*' 2>/dev/null | wc -l | tr -d ' '
 }
 
 file_exists() {
@@ -35,7 +40,11 @@ file_exists() {
 
 grep_count() {
   local pattern="$1"
-  grep -r "$pattern" "$REPO_DIR" --include="*.py" --include="*.js" --include="*.ts" --include="*.java" --include="*.go" --include="*.rb" --include="*.rs" --include="*.yml" --include="*.yaml" --include="*.md" --include="*.tsx" --include="*.jsx" -l 2>/dev/null | grep -v node_modules | grep -v .git | wc -l | tr -d ' '
+  grep -r "$pattern" "$REPO_DIR" --include="*.py" --include="*.js" --include="*.ts" --include="*.java" --include="*.go" --include="*.rb" --include="*.rs" --include="*.yml" --include="*.yaml" --include="*.md" --include="*.tsx" --include="*.jsx" -l 2>/dev/null \
+    | grep -v node_modules | grep -v .git \
+    | grep -v '/test/' | grep -v '/tests/' | grep -v '/fixtures/' \
+    | grep -v '/__tests__/' | grep -v '/spec/' | grep -v '/examples/' \
+    | grep -v '/sample/' | wc -l | tr -d ' '
 }
 
 json_array_from_files() {
@@ -55,6 +64,38 @@ json_array_from_files() {
   done <<< "$files"
   echo -n "]"
 }
+
+# ── Primary Language Detection ──────────────────────────────────────
+# Used to discard framework migrations that don't match the repo's primary language
+
+detect_primary_language() {
+  local py=$(count_files "*.py")
+  local js=$(count_files "*.js")
+  local jsx=$(count_files "*.jsx")
+  local ts=$(count_files "*.ts")
+  local tsx=$(count_files "*.tsx")
+  local java=$(count_files "*.java")
+  local go=$(count_files "*.go")
+  local rs=$(count_files "*.rs")
+  local rb=$(count_files "*.rb")
+  local c=$(count_files "*.c")
+  local cpp=$(count_files "*.cpp")
+  local js_total=$((js + jsx + ts + tsx))
+  local c_total=$((c + cpp))
+
+  local max=0 primary="unknown"
+  for pair in "python:$py" "javascript:$js_total" "java:$java" "go:$go" "rust:$rs" "ruby:$rb" "c:$c_total"; do
+    local lang="${pair%%:*}"
+    local cnt="${pair##*:}"
+    if [ "$cnt" -gt "$max" ]; then
+      max=$cnt
+      primary=$lang
+    fi
+  done
+  echo "$primary"
+}
+
+PRIMARY_LANG=$(detect_primary_language)
 
 # ── Category 1: Language Migration ───────────────────────────────────
 
@@ -137,15 +178,17 @@ detect_framework_migrations() {
     migrations="${migrations}{\"category\":\"framework\",\"from\":\"CRA\",\"to\":\"Vite\",\"confidence\":0.80,\"signals\":[{\"type\":\"config_coexistence\",\"detail\":\"react-scripts + vite.config\"}]},"
   fi
 
-  # Express → Fastify or Nest
-  local express_imports=$(grep_count "require.*express\|from.*express")
-  local fastify_imports=$(grep_count "require.*fastify\|from.*fastify")
-  local nest_imports=$(grep_count "from.*@nestjs")
-  if [ "$express_imports" -gt 0 ] && [ "$fastify_imports" -gt 0 ]; then
-    migrations="${migrations}{\"category\":\"framework\",\"from\":\"Express\",\"to\":\"Fastify\",\"confidence\":0.70,\"signals\":[{\"type\":\"import_coexistence\",\"detail\":\"Express + Fastify imports\"}]},"
-  fi
-  if [ "$express_imports" -gt 0 ] && [ "$nest_imports" -gt 0 ]; then
-    migrations="${migrations}{\"category\":\"framework\",\"from\":\"Express\",\"to\":\"NestJS\",\"confidence\":0.65,\"signals\":[{\"type\":\"import_coexistence\",\"detail\":\"Express + NestJS imports\"}]},"
+  # Express → Fastify or Nest (only if primary language is JS/TS)
+  if [ "$PRIMARY_LANG" = "javascript" ]; then
+    local express_imports=$(grep_count "require.*express\|from.*express")
+    local fastify_imports=$(grep_count "require.*fastify\|from.*fastify")
+    local nest_imports=$(grep_count "from.*@nestjs")
+    if [ "$express_imports" -gt 0 ] && [ "$fastify_imports" -gt 0 ]; then
+      migrations="${migrations}{\"category\":\"framework\",\"from\":\"Express\",\"to\":\"Fastify\",\"confidence\":0.70,\"signals\":[{\"type\":\"import_coexistence\",\"detail\":\"Express + Fastify imports\"}]},"
+    fi
+    if [ "$express_imports" -gt 0 ] && [ "$nest_imports" -gt 0 ]; then
+      migrations="${migrations}{\"category\":\"framework\",\"from\":\"Express\",\"to\":\"NestJS\",\"confidence\":0.65,\"signals\":[{\"type\":\"import_coexistence\",\"detail\":\"Express + NestJS imports\"}]},"
+    fi
   fi
 
   echo "$migrations"
@@ -184,17 +227,34 @@ detect_architecture_migrations() {
 detect_cloud_migrations() {
   local migrations=""
 
-  # AWS → GCP / Azure (Terraform with multiple providers)
+  # AWS → GCP / Azure — require BOTH SDK coexistence AND migration-intent files
+  # Migration-intent: terraform provider blocks, migration scripts, cloud CLI configs
   local aws_tf=$(grep_count "provider.*aws\|aws_")
   local gcp_tf=$(grep_count "provider.*google\|google_")
   local azure_tf=$(grep_count "provider.*azurerm\|azurerm_")
+
+  # Check for explicit migration-intent signals
+  local has_tf_providers=false
+  local tf_files=$(find "$REPO_DIR" -maxdepth 3 -name "*.tf" -not -path '*/test/*' -not -path '*/tests/*' -not -path '*/fixtures/*' -not -path '*/examples/*' -not -path '*/sample/*' 2>/dev/null | head -1)
+  [ -n "$tf_files" ] && has_tf_providers=true
+  local migration_scripts=$(find "$REPO_DIR" -maxdepth 3 -type f \( -iname "*cloud-migrat*" -o -iname "*migrate-aws*" -o -iname "*migrate-gcp*" -o -iname "*migrate-azure*" \) 2>/dev/null | head -1)
+  local cloud_cli_conf=$(find "$REPO_DIR" -maxdepth 3 -type f \( -name ".gcloudignore" -o -name "app.yaml" -o -name "azure-pipelines.yml" \) -not -path '*/test/*' -not -path '*/examples/*' 2>/dev/null | head -1)
+  local has_intent=false
+  { [ "$has_tf_providers" = true ] && [ -n "$migration_scripts" ]; } && has_intent=true
+  { [ "$has_tf_providers" = true ] && [ -n "$cloud_cli_conf" ]; } && has_intent=true
+  [ -n "$migration_scripts" ] && has_intent=true
+
   if [ "$aws_tf" -gt 0 ] && [ "$gcp_tf" -gt 0 ]; then
-    local detail=$(json_escape "AWS ($aws_tf refs) + GCP ($gcp_tf refs) in Terraform")
-    migrations="${migrations}{\"category\":\"cloud\",\"from\":\"AWS\",\"to\":\"GCP\",\"confidence\":0.75,\"signals\":[{\"type\":\"iac_coexistence\",\"detail\":\"$detail\"}]},"
+    local conf=0.40
+    [ "$has_intent" = true ] && conf=0.75
+    local detail=$(json_escape "AWS ($aws_tf refs) + GCP ($gcp_tf refs)")
+    migrations="${migrations}{\"category\":\"cloud\",\"from\":\"AWS\",\"to\":\"GCP\",\"confidence\":$conf,\"signals\":[{\"type\":\"iac_coexistence\",\"detail\":\"$detail\"}]},"
   fi
   if [ "$aws_tf" -gt 0 ] && [ "$azure_tf" -gt 0 ]; then
-    local detail=$(json_escape "AWS ($aws_tf refs) + Azure ($azure_tf refs) in Terraform")
-    migrations="${migrations}{\"category\":\"cloud\",\"from\":\"AWS\",\"to\":\"Azure\",\"confidence\":0.75,\"signals\":[{\"type\":\"iac_coexistence\",\"detail\":\"$detail\"}]},"
+    local conf=0.40
+    [ "$has_intent" = true ] && conf=0.75
+    local detail=$(json_escape "AWS ($aws_tf refs) + Azure ($azure_tf refs)")
+    migrations="${migrations}{\"category\":\"cloud\",\"from\":\"AWS\",\"to\":\"Azure\",\"confidence\":$conf,\"signals\":[{\"type\":\"iac_coexistence\",\"detail\":\"$detail\"}]},"
   fi
 
   echo "$migrations"
@@ -207,7 +267,7 @@ detect_devops_migrations() {
 
   # GitLab CI → GitHub Actions
   local gitlab=$(file_exists ".gitlab-ci.yml")
-  local github_wf=$(find "$REPO_DIR/.github/workflows" -name "*.yml" -o -name "*.yaml" 2>/dev/null | head -1)
+  local github_wf=$(find "$REPO_DIR/.github/workflows" \( -name "*.yml" -o -name "*.yaml" \) 2>/dev/null | head -1)
   if [ -n "$gitlab" ] && [ -n "$github_wf" ]; then
     migrations="${migrations}{\"category\":\"devops\",\"from\":\"GitLab CI\",\"to\":\"GitHub Actions\",\"confidence\":0.90,\"signals\":[{\"type\":\"config_coexistence\",\"detail\":\".gitlab-ci.yml + .github/workflows/\"}]},"
   fi
