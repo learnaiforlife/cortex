@@ -46,3 +46,7 @@ description: "Challenges assumptions before implementation. Systematically argue
 - Are there cheaper alternatives that meet the same requirements?
 - What is the cost of NOT doing this? Is the problem worth solving now?
 - What ongoing operational cost does this introduce (monitoring, maintenance, on-call)?
+
+## Placeholders
+
+None — this template has no configurable placeholders.

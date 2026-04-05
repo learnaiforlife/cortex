@@ -17,7 +17,9 @@ You will receive:
 1. A **ProjectProfile JSON** with detected signals (language, framework, deps, services, scripts)
 2. The **repo-analyzer output** (structured markdown with architecture, patterns, commands, testing info)
 
-Use BOTH inputs to generate the AGENTS.md. The repo-analyzer output has the deep details; the ProjectProfile has the structured metadata.
+Before generating, read `{CLAUDE_SKILL_DIR}/references/codex-formats.md` for the authoritative Codex file format specification and conventions.
+
+Use BOTH inputs plus the codex-formats reference to generate the AGENTS.md. The repo-analyzer output has the deep details; the ProjectProfile has the structured metadata.
 
 ## AGENTS.md Structure
 

@@ -51,3 +51,7 @@ description: "Socratic questioning for high-stakes decisions. Asks probing quest
 - Can you trace a single request through the entire system?
 - What dashboards or alerts need to be created alongside this feature?
 - How do you distinguish between a bug and expected behavior in the logs?
+
+## Placeholders
+
+None — this template has no configurable placeholders.

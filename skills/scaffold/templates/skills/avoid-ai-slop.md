@@ -41,3 +41,7 @@ description: "Enforces concise, direct AI output. Catches filler phrases, unnece
 ### Unnecessary Padding
 - BAD: "Here's what I found after analyzing the codebase:\n\nAfter a thorough review of the project structure and dependencies..."
 - GOOD: "The codebase uses Express with PostgreSQL. Three issues found:"
+
+## Placeholders
+
+None — this template has no configurable placeholders.

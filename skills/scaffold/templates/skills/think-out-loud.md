@@ -62,3 +62,7 @@ Thinking:
 - Assumption: Update frequency is low enough (< 1/second) that SSE overhead is acceptable
 - Risk: If we need to support IE11 or certain corporate proxies, SSE may not work -- would fall back to polling
 ```
+
+## Placeholders
+
+None — this template has no configurable placeholders.

@@ -1,6 +1,8 @@
 #!/bin/bash
 # Cortex Discover — Results Logger
 # Append-only TSV log for discover runs, parallel to scaffold-results.tsv.
+# Referenced by: AGENTS.md (documented as DeveloperDNA logger)
+# Called by: discover workflow (invoked by subagent, not directly by other scripts)
 #
 # Usage: log-discover.sh <scan_dirs> <total_projects> <active_projects> \
 #          <integrations_found> <user_level_files> <project_level_files> \
