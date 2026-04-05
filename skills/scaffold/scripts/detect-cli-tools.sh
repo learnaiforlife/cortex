@@ -15,6 +15,7 @@
 set -uo pipefail
 
 REPO_DIR="${1:-.}"
+REPO_DIR="$(cd "$REPO_DIR" && pwd)"
 
 # JSON-safe string escaping — prevents injection from version strings
 json_escape() {
@@ -129,18 +130,18 @@ detect_shell_config() {
   esac
 }
 
-# Detect repo context (what ecosystems are relevant)
+# Detect repo context (what ecosystems are relevant) — scoped to REPO_DIR only
 detect_repo_context() {
   local dir="$1"
   local has_pkg_json=false has_pyproject=false has_go_mod=false has_cargo_toml=false
   local has_tsconfig=false has_requirements=false has_setup_py=false
-  [ -f "$dir/package.json" ] && has_pkg_json=true
-  [ -f "$dir/tsconfig.json" ] && has_tsconfig=true
-  [ -f "$dir/pyproject.toml" ] && has_pyproject=true
-  [ -f "$dir/requirements.txt" ] && has_requirements=true
-  [ -f "$dir/setup.py" ] && has_setup_py=true
-  [ -f "$dir/go.mod" ] && has_go_mod=true
-  [ -f "$dir/Cargo.toml" ] && has_cargo_toml=true
+  [ -n "$(find "$dir" -maxdepth 3 -name 'package.json' -not -path '*/node_modules/*' -print -quit 2>/dev/null)" ] && has_pkg_json=true
+  [ -n "$(find "$dir" -maxdepth 3 -name 'tsconfig.json' -not -path '*/node_modules/*' -print -quit 2>/dev/null)" ] && has_tsconfig=true
+  [ -n "$(find "$dir" -maxdepth 3 -name 'pyproject.toml' -print -quit 2>/dev/null)" ] && has_pyproject=true
+  [ -n "$(find "$dir" -maxdepth 3 -name 'requirements.txt' -print -quit 2>/dev/null)" ] && has_requirements=true
+  [ -n "$(find "$dir" -maxdepth 3 -name 'setup.py' -print -quit 2>/dev/null)" ] && has_setup_py=true
+  [ -n "$(find "$dir" -maxdepth 3 -name 'go.mod' -print -quit 2>/dev/null)" ] && has_go_mod=true
+  [ -n "$(find "$dir" -maxdepth 3 -name 'Cargo.toml' -print -quit 2>/dev/null)" ] && has_cargo_toml=true
   printf '{"hasPackageJson": %s, "hasTsconfig": %s, "hasPyproject": %s, "hasRequirements": %s, "hasSetupPy": %s, "hasGoMod": %s, "hasCargoToml": %s}' \
     "$has_pkg_json" "$has_tsconfig" "$has_pyproject" "$has_requirements" "$has_setup_py" "$has_go_mod" "$has_cargo_toml"
 }
@@ -172,18 +173,23 @@ SHELL_CONFIG=$(detect_shell_config)
 REPO_CONTEXT=$(detect_repo_context "$REPO_DIR")
 AI_CONFIG=$(detect_ai_config)
 
-# Determine which ecosystem categories are relevant
+# Determine which ecosystem categories are relevant — scoped to REPO_DIR
 HAS_JS=false
 HAS_PY=false
 HAS_GO=false
 HAS_RUST=false
 HAS_DOCKER=false
 
-[ -f "$REPO_DIR/package.json" ] || [ -f "$REPO_DIR/tsconfig.json" ] && HAS_JS=true
-[ -f "$REPO_DIR/pyproject.toml" ] || [ -f "$REPO_DIR/requirements.txt" ] || [ -f "$REPO_DIR/setup.py" ] && HAS_PY=true
-[ -f "$REPO_DIR/go.mod" ] && HAS_GO=true
-[ -f "$REPO_DIR/Cargo.toml" ] && HAS_RUST=true
-[ -f "$REPO_DIR/Dockerfile" ] || [ -f "$REPO_DIR/docker-compose.yml" ] || [ -f "$REPO_DIR/docker-compose.yaml" ] && HAS_DOCKER=true
+[ -n "$(find "$REPO_DIR" -maxdepth 3 -name 'package.json' -not -path '*/node_modules/*' -print -quit 2>/dev/null)" ] || \
+  [ -n "$(find "$REPO_DIR" -maxdepth 3 -name 'tsconfig.json' -not -path '*/node_modules/*' -print -quit 2>/dev/null)" ] && HAS_JS=true
+[ -n "$(find "$REPO_DIR" -maxdepth 3 -name 'pyproject.toml' -print -quit 2>/dev/null)" ] || \
+  [ -n "$(find "$REPO_DIR" -maxdepth 3 -name 'requirements.txt' -print -quit 2>/dev/null)" ] || \
+  [ -n "$(find "$REPO_DIR" -maxdepth 3 -name 'setup.py' -print -quit 2>/dev/null)" ] && HAS_PY=true
+[ -n "$(find "$REPO_DIR" -maxdepth 3 -name 'go.mod' -print -quit 2>/dev/null)" ] && HAS_GO=true
+[ -n "$(find "$REPO_DIR" -maxdepth 3 -name 'Cargo.toml' -print -quit 2>/dev/null)" ] && HAS_RUST=true
+[ -n "$(find "$REPO_DIR" -maxdepth 3 -name 'Dockerfile' -print -quit 2>/dev/null)" ] || \
+  [ -n "$(find "$REPO_DIR" -maxdepth 3 -name 'docker-compose.yml' -print -quit 2>/dev/null)" ] || \
+  [ -n "$(find "$REPO_DIR" -maxdepth 3 -name 'docker-compose.yaml' -print -quit 2>/dev/null)" ] && HAS_DOCKER=true
 
 # Start JSON
 echo "{"
